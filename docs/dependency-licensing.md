@@ -1,9 +1,9 @@
 # PDF backend licensing options
 
-The `pdf-to-carve` source code is MIT licensed. The complete installed stack has
-an additional consideration: its current PDF backend, PyMuPDF, is offered under
-the GNU AGPL v3 or a commercial Artifex license. This note is an engineering
-decision record, not legal advice.
+The `pdf-to-carve` source code is MIT licensed. Its default PDF stack uses
+`pypdfium2`, which offers BSD-3-Clause or Apache-2.0 terms, and PDFium, whose
+upstream license is BSD-style. This note is an engineering decision record, not
+legal advice.
 
 The locally installed benchmark tools are not dependencies. They live outside
 the repository and are not included in source archives, wheels, or releases.
@@ -25,35 +25,44 @@ Keep the current implementation and obtain an appropriate commercial license
 from Artifex for deployments that do not use the AGPL option. This has the least
 technical risk, but introduces procurement, cost, and license-management work.
 
-### 3. Make PyMuPDF an optional backend
+### 3. Make PyMuPDF an optional backend (implemented)
 
-Move PyMuPDF behind an installation extra and define a backend interface. The
-base package could remain dependency-light and permissively deployable, while
-users explicitly choosing PyMuPDF would accept its terms or provide a commercial
-license. This is useful only if the base installation has another functional PDF
-backend; making the dependency optional without a replacement would merely move
-the failure to runtime.
+PyMuPDF is available only through the `pymupdf` extra and explicit
+`--pdf-backend pymupdf` selection. Users choosing it must assess its AGPL terms
+or provide a commercial license. The base installation does not import or need
+PyMuPDF.
 
-### 4. Migrate to a permissive backend
+### 4. Migrate to a permissive backend (implemented as the default)
 
-Implement text extraction and rendering with a permissively licensed PDFium
-binding or another vetted backend. This offers the cleanest default dependency
-story, but it must pass parity tests for text coordinates, metadata, page-range
-handling, rasterization, embedded-image extraction, malformed files, and the
-known-ground-truth PDF corpus before replacing PyMuPDF.
+PDFium now implements text extraction, text coordinates, metadata, page-range
+handling, rasterization, and embedded-image extraction. PyMuPDF remains an
+explicit compatibility and rollback option.
 
-## Recommendation
+## Measured migration result
 
-Use option 3 as the transition architecture and option 4 as the target:
+The known-ground-truth complex-PDF corpus produced these local averages. Scores
+range from 0 to 1; higher is better. Runtime and memory cover text-mode CLI
+conversion on the same machine.
 
-1. Introduce a narrow PDF-backend protocol.
-2. Preserve PyMuPDF as the tested compatibility backend.
-3. Add a permissive backend behind its own extra.
-4. Run both through identical unit, fuzz, and complex-PDF fidelity tests.
-5. Change the default only after the permissive backend reaches quality parity.
+| Measure | PDFium default | PyMuPDF compatibility |
+| --- | ---: | ---: |
+| Text character fidelity | 0.818 | 0.828 |
+| Text word fidelity | 0.790 | 0.813 |
+| Hybrid character fidelity | 0.939 | 0.958 |
+| Hybrid word fidelity | 0.914 | 0.921 |
+| Hybrid structure fidelity | 0.961 | 0.961 |
+| Text-mode time per document | 0.08–0.09 s | 0.18 s |
+| Text-mode peak memory | 29–30 MiB | 65–67 MiB |
 
-Until that work is complete, keep PyMuPDF explicit in installation and security
-documentation. Do not claim that the entire dependency stack is MIT licensed.
+At 180 DPI, page rasterizations had 0.9967–0.9996 pixel similarity. Hybrid
+vision results are nondeterministic and should be treated as samples, while the
+text and raster measurements are deterministic for the tested versions.
+
+The default is therefore PDFium: it is materially faster and smaller, preserves
+structure in the hybrid path, and has near-parity deterministic fidelity. Keep
+the compatibility extra for consumers that require the final few points of text
+fidelity. Do not describe third-party dependencies as MIT merely because this
+project's own source is MIT.
 
 ## Decision checklist
 
@@ -69,5 +78,7 @@ documentation. Do not claim that the entire dependency stack is MIT licensed.
 Primary references:
 
 - [PyMuPDF licensing](https://pymupdf.readthedocs.io/en/latest/about.html#license-and-copyright)
+- [pypdfium2 licensing](https://pypdfium2.readthedocs.io/en/stable/readme.html#licensing)
+- [PDFium license](https://pdfium.googlesource.com/pdfium/+/refs/heads/main/LICENSE)
 - [GNU AGPL v3](https://www.gnu.org/licenses/agpl-3.0.html)
 - [Artifex licensing](https://artifex.com/licensing/)

@@ -1,6 +1,6 @@
 # Privacy and security
 
-Text mode is local: it reads the PDF with PyMuPDF and makes no network request.
+Text mode is local: it reads the PDF with PDFium by default and makes no network request.
 Vision and hybrid modes send rendered pages to the configured API endpoint; hybrid
 also sends bounded extracted text and coordinates. Check the provider's retention,
 training, regional-processing, and access policies before using sensitive material.

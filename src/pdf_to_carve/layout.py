@@ -6,11 +6,20 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-import pymupdf
+
+def _pymupdf() -> Any:
+    try:
+        import pymupdf
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "the PyMuPDF backend requires the optional 'pdf-to-carve[pymupdf]' extra"
+        ) from exc
+    return pymupdf
 
 
 def positioned_text(path: Path, start: int = 1, end: int | None = None) -> list[dict[str, Any]]:
     """Extract compact block-level text evidence in PDF coordinates."""
+    pymupdf = _pymupdf()
     doc = pymupdf.open(path)
     try:
         last = doc.page_count if end is None else min(end, doc.page_count)
@@ -54,6 +63,7 @@ def evidence_prompt(evidence: list[dict[str, Any]], max_chars: int = 60_000) -> 
 
 def extract_embedded_images(path: Path, output_dir: Path) -> list[Path]:
     """Extract unique embedded raster images with safe deterministic names."""
+    pymupdf = _pymupdf()
     output_dir.mkdir(parents=True, exist_ok=True)
     doc = pymupdf.open(path)
     seen: set[str] = set()

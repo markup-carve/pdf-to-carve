@@ -40,6 +40,21 @@ def test_hybrid_can_use_codex_cli_provider(tmp_path: Path) -> None:
     assert transcribe.call_args.kwargs["model"] == "cli-model"
 
 
+def test_pymupdf_remains_an_explicit_compatibility_backend(tmp_path: Path) -> None:
+    pdf = tmp_path / "sample.pdf"
+    _pdf(pdf)
+    result = convert(pdf, ConversionOptions(mode="text", pdf_backend="pymupdf"))
+    assert result.mode == "text"
+    assert "searchable evidence" in result.source
+
+
+def test_unknown_pdf_backend_fails_closed(tmp_path: Path) -> None:
+    pdf = tmp_path / "sample.pdf"
+    _pdf(pdf)
+    with pytest.raises(ValueError, match="unsupported PDF backend"):
+        convert(pdf, ConversionOptions(mode="text", pdf_backend="unknown"))  # type: ignore[arg-type]
+
+
 def test_vision_page_limit_is_enforced_before_request(tmp_path: Path) -> None:
     pdf = tmp_path / "long.pdf"
     _pdf(pdf, pages=2)

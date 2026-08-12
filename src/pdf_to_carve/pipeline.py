@@ -9,12 +9,18 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-import pymupdf
-
 from .cache import JsonCache, cache_key
-from .extract import extract_text_pdf, text_coverage
-from .layout import evidence_prompt, extract_embedded_images, positioned_text
+from .extract import extract_text_pdf as pymupdf_extract_text
+from .extract import text_coverage as pymupdf_text_coverage
+from .layout import _pymupdf, evidence_prompt
+from .layout import extract_embedded_images as pymupdf_extract_images
+from .layout import positioned_text as pymupdf_positioned_text
 from .model import Document
+from .pdfium_backend import extract_embedded_images as pdfium_extract_images
+from .pdfium_backend import extract_text_pdf as pdfium_extract_text
+from .pdfium_backend import positioned_text as pdfium_positioned_text
+from .pdfium_backend import render_pages as pdfium_render_pages
+from .pdfium_backend import text_coverage as pdfium_text_coverage
 from .serialize import to_carve
 from .vision import SYSTEM_PROMPT, transcribe_images, transcribe_images_codex
 
@@ -37,6 +43,7 @@ class ConversionOptions:
     assets_dir: Path | None = None
     max_input_mb: int = 100
     provider: Literal["openai", "codex-cli"] = "openai"
+    pdf_backend: Literal["pdfium", "pymupdf"] = "pdfium"
 
 
 @dataclass(frozen=True)
@@ -52,6 +59,7 @@ def _render_pages(
 ) -> list[Path]:
     if path.suffix.lower() != ".pdf":
         return [path]
+    pymupdf = _pymupdf()
     doc = pymupdf.open(path)
     try:
         last = doc.page_count if end is None else min(end, doc.page_count)
@@ -104,39 +112,58 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
     if path.stat().st_size > options.max_input_mb * 1024 * 1024:
         raise ValueError(f"input exceeds the {options.max_input_mb} MiB safety limit")
     is_pdf = path.suffix.lower() == ".pdf"
+    if options.pdf_backend not in ("pdfium", "pymupdf"):
+        raise ValueError(f"unsupported PDF backend: {options.pdf_backend}")
+    extract_text = pdfium_extract_text if options.pdf_backend == "pdfium" else pymupdf_extract_text
+    coverage = pdfium_text_coverage if options.pdf_backend == "pdfium" else pymupdf_text_coverage
+    positioned = (
+        pdfium_positioned_text if options.pdf_backend == "pdfium" else pymupdf_positioned_text
+    )
+    extract_images = (
+        pdfium_extract_images if options.pdf_backend == "pdfium" else pymupdf_extract_images
+    )
     selected = options.mode
     if selected == "auto":
         selected = (
             "text"
             if is_pdf
-            and text_coverage(path, options.start_page, options.end_page) >= options.text_threshold
+            and coverage(path, options.start_page, options.end_page) >= options.text_threshold
             else "vision"
         )
     if selected == "text":
         if not is_pdf:
             raise ValueError("text mode supports PDF input only")
-        raw = extract_text_pdf(path, options.start_page, options.end_page)
+        raw = extract_text(path, options.start_page, options.end_page)
     else:
         if options.dpi < 72 or options.dpi > 400:
             raise ValueError("dpi must be between 72 and 400")
         if options.max_pages < 1:
             raise ValueError("max_pages must be positive")
         with tempfile.TemporaryDirectory(prefix="pdf-to-carve-") as temp:
-            images = _render_pages(
-                path,
-                Path(temp),
-                options.start_page,
-                options.end_page,
-                dpi=options.dpi,
-                max_pages=options.max_pages,
+            images = (
+                pdfium_render_pages(
+                    path,
+                    Path(temp),
+                    options.start_page,
+                    options.end_page,
+                    dpi=options.dpi,
+                    max_pages=options.max_pages,
+                )
+                if is_pdf and options.pdf_backend == "pdfium"
+                else _render_pages(
+                    path,
+                    Path(temp),
+                    options.start_page,
+                    options.end_page,
+                    dpi=options.dpi,
+                    max_pages=options.max_pages,
+                )
             )
             context = None
             if selected == "hybrid":
                 if not is_pdf:
                     raise ValueError("hybrid mode supports PDF input only")
-                context = evidence_prompt(
-                    positioned_text(path, options.start_page, options.end_page)
-                )
+                context = evidence_prompt(positioned(path, options.start_page, options.end_page))
                 context += (
                     "\nFor hybrid extraction, include exactly one provenance entry per block, "
                     "using the best matching page and any defensible bbox/confidence/warnings."
@@ -163,7 +190,7 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
                 if cache and options.use_cache:
                     cache.put(key, raw)
     if options.assets_dir and is_pdf:
-        extract_embedded_images(path, options.assets_dir)
+        extract_images(path, options.assets_dir)
     document = Document.from_json(raw)
     source = to_carve(document)
     diagnostics = _official_check(source, options.carve_command) if options.carve_command else ()

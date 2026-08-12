@@ -98,7 +98,7 @@ pdf-to-carve document.pdf -o document.crv --carve-command carve
 
 AI is deliberately narrow and optional:
 
-- Text PDFs use PyMuPDF and make no network request.
+- Text PDFs use PDFium by default and make no network request.
 - Scans, images, and complex layouts use one document-level vision request.
 - Hybrid mode gives the model bounded positioned-text evidence alongside images.
 - The model returns JSON, never executable content or final Carve syntax.
@@ -138,6 +138,14 @@ escaping. The contract can evolve by adding a new version.
 See [privacy and security](docs/privacy-security.md) before processing sensitive files.
 For distribution planning, see the
 [PDF backend licensing options](docs/dependency-licensing.md).
+
+The default PDFium backend is permissively licensed. Install the optional
+PyMuPDF compatibility backend when exact legacy behavior is required:
+
+```bash
+pip install 'pdf-to-carve[pymupdf]'
+pdf-to-carve document.pdf --pdf-backend pymupdf
+```
 
 ## Development
 

@@ -109,3 +109,51 @@ def test_native_semantic_nodes_round_trip_public_json() -> None:
         ],
     }
     assert document_to_json(Document.from_json(raw)) == raw
+
+
+def test_provenance_round_trips() -> None:
+    raw = {
+        "version": 1,
+        "blocks": [{"type": "paragraph", "content": []}],
+        "provenance": [
+            {
+                "block": 0,
+                "page": 2,
+                "bbox": [1, 2.5, 30, 40],
+                "confidence": 0.8,
+                "warnings": ["check equation"],
+                "evidence": "visible text",
+            }
+        ],
+    }
+    assert document_to_json(Document.from_json(raw)) == raw
+
+
+@pytest.mark.parametrize(
+    ("entry", "message"),
+    [
+        ({"block": 1, "page": 1}, "existing block"),
+        ({"block": 0, "page": 0}, "positive integer"),
+        ({"block": 0, "page": 1, "bbox": [2, 0, 1, 1]}, "ordered coordinates"),
+        ({"block": 0, "page": 1, "confidence": 1.1}, "between 0 and 1"),
+        ({"block": 0, "page": 1, "warnings": "no"}, "must be an array"),
+    ],
+)
+def test_invalid_provenance_fails_closed(entry: object, message: str) -> None:
+    raw = {
+        "version": 1,
+        "blocks": [{"type": "paragraph", "content": []}],
+        "provenance": [entry],
+    }
+    with pytest.raises(DocumentError, match=message):
+        Document.from_json(raw)
+
+
+def test_duplicate_provenance_fails_closed() -> None:
+    raw = {
+        "version": 1,
+        "blocks": [{"type": "paragraph", "content": []}],
+        "provenance": [{"block": 0, "page": 1}, {"block": 0, "page": 2}],
+    }
+    with pytest.raises(DocumentError, match="at most one"):
+        Document.from_json(raw)

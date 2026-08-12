@@ -15,17 +15,20 @@ class Response:
     def __exit__(self, *_args):
         return None
 
-    def read(self):
-        return json.dumps(
+    def read(self, size: int = -1):
+        payload = json.dumps(
             {"choices": [{"message": {"content": '{"version":1,"blocks":[]}'}}]}
         ).encode()
+        return payload if size < 0 else payload[:size]
 
 
 def test_provider_builds_openai_compatible_json_request(tmp_path: Path) -> None:
     image = tmp_path / "page.png"
     image.write_bytes(b"png")
     with patch("urllib.request.urlopen", return_value=Response()) as opened:
-        assert transcribe_images([image], model="vision-test", api_key="secret") == {
+        assert transcribe_images(
+            [image], model="vision-test", api_key="secret", context="trusted OCR hint"
+        ) == {
             "version": 1,
             "blocks": [],
         }
@@ -34,6 +37,7 @@ def test_provider_builds_openai_compatible_json_request(tmp_path: Path) -> None:
     assert request.headers["Authorization"] == "Bearer secret"
     assert body["model"] == "vision-test"
     assert body["response_format"] == {"type": "json_object"}
+    assert "trusted OCR hint" in body["messages"][1]["content"][0]["text"]
     assert body["messages"][1]["content"][1]["image_url"]["url"].startswith(
         "data:image/png;base64,"
     )
@@ -63,10 +67,23 @@ def test_provider_does_not_retry_invalid_json(tmp_path: Path) -> None:
     image = tmp_path / "page.png"
     image.write_bytes(b"png")
     response = Response()
-    response.read = lambda: b'{"choices": []}'
+    response.read = lambda _size=-1: b'{"choices": []}'
     with (
         patch("urllib.request.urlopen", return_value=response) as opened,
         pytest.raises(VisionError, match="invalid response"),
     ):
         transcribe_images([image], model="test", api_key="secret")
     assert opened.call_count == 1
+
+
+def test_provider_rejects_oversized_response(tmp_path: Path) -> None:
+    image = tmp_path / "page.png"
+    image.write_bytes(b"png")
+    response = Response()
+    response.read = lambda size=-1: b"x" * size
+    with (
+        patch("urllib.request.urlopen", return_value=response),
+        patch("pdf_to_carve.vision.MAX_RESPONSE_BYTES", 20),
+        pytest.raises(VisionError, match="exceeded"),
+    ):
+        transcribe_images([image], model="test", api_key="secret")

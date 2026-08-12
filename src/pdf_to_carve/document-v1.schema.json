@@ -10,9 +10,28 @@
     "title": {"type": "string", "minLength": 1},
     "author": {"type": "string", "minLength": 1},
     "language": {"type": "string", "minLength": 1},
-    "blocks": {"type": "array", "items": {"$ref": "#/$defs/block"}}
+    "blocks": {"type": "array", "items": {"$ref": "#/$defs/block"}},
+    "provenance": {"type": "array", "items": {"$ref": "#/$defs/provenance"}}
   },
   "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["block", "page"],
+      "properties": {
+        "block": {"type": "integer", "minimum": 0},
+        "page": {"type": "integer", "minimum": 1},
+        "bbox": {
+          "type": "array",
+          "prefixItems": [{"type": "number"}, {"type": "number"}, {"type": "number"}, {"type": "number"}],
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "warnings": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "evidence": {"type": "string"}
+      }
+    },
     "inlines": {"type": "array", "items": {"$ref": "#/$defs/inline"}},
     "inline": {
       "oneOf": [

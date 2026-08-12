@@ -9,13 +9,14 @@ from pathlib import Path
 
 from .model import document_to_json
 from .pipeline import ConversionOptions, convert, convert_json
+from .review import write_review
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Convert PDF or image documents to Carve")
     parser.add_argument("input", type=Path, help="PDF, image, or extraction JSON")
     parser.add_argument("-o", "--output", type=Path, help="output .crv path (default: stdout)")
-    parser.add_argument("--mode", choices=("auto", "text", "vision"), default="auto")
+    parser.add_argument("--mode", choices=("auto", "text", "vision", "hybrid"), default="auto")
     parser.add_argument("--from-json", action="store_true", help="serialize saved extraction JSON")
     parser.add_argument("--save-json", type=Path, help="save the validated extraction model")
     parser.add_argument("--start-page", type=int, default=1)
@@ -26,6 +27,13 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--text-threshold", type=float, default=80.0)
     parser.add_argument("--retries", type=int, default=3, help="transient vision request attempts")
     parser.add_argument("--carve-command", help="official carve CLI used for fmt/lint verification")
+    parser.add_argument("--dpi", type=int, default=180, help="vision raster DPI (72-400)")
+    parser.add_argument("--max-pages", type=int, default=20, help="vision request safety limit")
+    parser.add_argument("--cache-dir", type=Path, help="content-addressed response cache")
+    parser.add_argument("--no-cache", action="store_true", help="bypass the configured cache")
+    parser.add_argument("--assets-dir", type=Path, help="extract embedded raster assets")
+    parser.add_argument("--max-input-mb", type=int, default=100, help="input-size safety limit")
+    parser.add_argument("--review-html", type=Path, help="write an escaped local review report")
     return parser
 
 
@@ -47,6 +55,12 @@ def main(argv: list[str] | None = None) -> int:
                     text_threshold=args.text_threshold,
                     retries=args.retries,
                     carve_command=args.carve_command,
+                    dpi=args.dpi,
+                    max_pages=args.max_pages,
+                    cache_dir=args.cache_dir,
+                    use_cache=not args.no_cache,
+                    assets_dir=args.assets_dir,
+                    max_input_mb=args.max_input_mb,
                 ),
             )
         if args.save_json:
@@ -58,6 +72,13 @@ def main(argv: list[str] | None = None) -> int:
             args.output.write_text(result.source, encoding="utf-8")
         else:
             sys.stdout.write(result.source)
+        if args.review_html:
+            write_review(
+                args.review_html,
+                source=result.source,
+                document=result.document,
+                input_name=args.input.name,
+            )
         print(
             f"pdf-to-carve: mode={result.mode}, blocks={len(result.document.blocks)}",
             file=sys.stderr,

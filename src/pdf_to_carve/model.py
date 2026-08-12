@@ -259,16 +259,75 @@ class Block:
 
 
 @dataclass(frozen=True)
+class Provenance:
+    block: int
+    page: int
+    bbox: tuple[float, float, float, float] | None = None
+    confidence: float | None = None
+    warnings: tuple[str, ...] = ()
+    evidence: str | None = None
+
+    @classmethod
+    def from_json(cls, value: Any, path: str, block_count: int) -> Provenance:
+        obj = _object(value, path)
+        _keys(obj, {"block", "page", "bbox", "confidence", "warnings", "evidence"}, path)
+        block = obj.get("block")
+        page = obj.get("page")
+        if not isinstance(block, int) or isinstance(block, bool) or not 0 <= block < block_count:
+            raise DocumentError(f"{path}.block must identify an existing block")
+        if not isinstance(page, int) or isinstance(page, bool) or page < 1:
+            raise DocumentError(f"{path}.page must be a positive integer")
+        bbox = None
+        if "bbox" in obj:
+            raw_bbox = obj["bbox"]
+            if (
+                not isinstance(raw_bbox, list)
+                or len(raw_bbox) != 4
+                or any(not isinstance(n, (int, float)) or isinstance(n, bool) for n in raw_bbox)
+            ):
+                raise DocumentError(f"{path}.bbox must contain four numbers")
+            bbox = tuple(float(n) for n in raw_bbox)
+            if bbox[2] < bbox[0] or bbox[3] < bbox[1]:
+                raise DocumentError(f"{path}.bbox must have ordered coordinates")
+        confidence = None
+        if "confidence" in obj:
+            raw_confidence = obj["confidence"]
+            if (
+                not isinstance(raw_confidence, (int, float))
+                or isinstance(raw_confidence, bool)
+                or not 0 <= raw_confidence <= 1
+            ):
+                raise DocumentError(f"{path}.confidence must be between 0 and 1")
+            confidence = float(raw_confidence)
+        raw_warnings = obj.get("warnings", [])
+        if not isinstance(raw_warnings, list):
+            raise DocumentError(f"{path}.warnings must be an array")
+        warnings = tuple(
+            _string(item, f"{path}.warnings[{i}]", empty=False)
+            for i, item in enumerate(raw_warnings)
+        )
+        evidence = None
+        if "evidence" in obj:
+            evidence = _string(obj["evidence"], f"{path}.evidence")
+        return cls(block, page, bbox, confidence, warnings, evidence)
+
+
+@dataclass(frozen=True)
 class Document:
     blocks: tuple[Block, ...]
     title: str | None = None
     author: str | None = None
     language: str | None = None
+    provenance: tuple[Provenance, ...] = ()
 
     @classmethod
     def from_json(cls, value: Any) -> Document:
         obj = _object(value, "document")
-        _keys(obj, {"version", "title", "author", "language", "blocks"}, "document")
+        _keys(
+            obj,
+            {"version", "title", "author", "language", "blocks", "provenance"},
+            "document",
+        )
         if obj.get("version") != 1:
             raise DocumentError("document.version must be 1")
         raw_blocks = obj.get("blocks")
@@ -278,12 +337,19 @@ class Document:
         for name in ("title", "author", "language"):
             if name in obj:
                 metadata[name] = _string(obj[name], f"document.{name}", empty=False)
-        return cls(
-            blocks=tuple(
-                Block.from_json(item, f"document.blocks[{i}]") for i, item in enumerate(raw_blocks)
-            ),
-            **metadata,
+        blocks = tuple(
+            Block.from_json(item, f"document.blocks[{i}]") for i, item in enumerate(raw_blocks)
         )
+        raw_provenance = obj.get("provenance", [])
+        if not isinstance(raw_provenance, list):
+            raise DocumentError("document.provenance must be an array")
+        provenance = tuple(
+            Provenance.from_json(item, f"document.provenance[{i}]", len(blocks))
+            for i, item in enumerate(raw_provenance)
+        )
+        if len({entry.block for entry in provenance}) != len(provenance):
+            raise DocumentError("document.provenance must contain at most one entry per block")
+        return cls(blocks=blocks, provenance=provenance, **metadata)
 
 
 def document_to_json(document: Document) -> dict[str, Any]:
@@ -339,4 +405,17 @@ def document_to_json(document: Document) -> dict[str, Any]:
                 rendered["rows"].append(cells)
         rendered_blocks.append(rendered)
     result["blocks"] = rendered_blocks
+    if document.provenance:
+        result["provenance"] = []
+        for item in document.provenance:
+            entry: dict[str, Any] = {"block": item.block, "page": item.page}
+            if item.bbox is not None:
+                entry["bbox"] = list(item.bbox)
+            if item.confidence is not None:
+                entry["confidence"] = item.confidence
+            if item.warnings:
+                entry["warnings"] = list(item.warnings)
+            if item.evidence is not None:
+                entry["evidence"] = item.evidence
+            result["provenance"].append(entry)
     return result

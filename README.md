@@ -11,8 +11,9 @@ See [Why Carve over Markdown?](docs/why-carve-over-markdown.md) and the
 [equal-model complex-PDF benchmark](docs/vision-benchmark-2026-08.md).
 
 ```text
-PDF/image -> text extraction or vision model -> document JSON -> Carve writer
-                                                           -> carve fmt/lint
+PDF/image -> text, vision, or hybrid extraction -> document JSON -> Carve writer
+                                                               -> carve fmt/lint
+                                                               -> review report
 ```
 
 ## Install
@@ -45,8 +46,14 @@ Force a mode or select pages:
 ```bash
 pdf-to-carve document.pdf --mode text --start-page 2 --end-page 8
 OPENAI_API_KEY=... pdf-to-carve scan.pdf --mode vision --model gpt-4o-mini
+OPENAI_API_KEY=... pdf-to-carve complex.pdf --mode hybrid --cache-dir .cache/pdf-to-carve
 pdf-to-carve page.png --mode vision -o page.crv
 ```
+
+Hybrid mode sends both rendered pages and positioned text evidence. It is useful
+for complex born-digital PDFs where text extraction preserves spelling but loses
+layout. Vision requests are capped at 20 pages by default; use `--max-pages` and
+`--dpi` to tune the request explicitly.
 
 Use `--base-url` with an OpenAI-compatible Chat Completions endpoint. The
 configured model must accept image inputs and JSON-object response format.
@@ -59,6 +66,17 @@ Save the provider-neutral extraction result and replay it without an API call:
 pdf-to-carve scan.pdf --mode vision --save-json scan.crv.json -o scan.crv
 pdf-to-carve scan.crv.json --from-json -o rebuilt.crv
 ```
+
+Generate a self-contained local review report and extract embedded raster assets:
+
+```bash
+pdf-to-carve report.pdf --mode hybrid -o report.crv \
+  --review-html review.html --assets-dir assets --save-json report.crv.json
+```
+
+The report escapes all document content and includes the generated source,
+validated JSON, provenance coverage, and warning count. See the
+[review workflow](docs/review-workflow.md).
 
 For the strongest check, point to the official Carve CLI. The command returns
 exit status 2 if `carve fmt --check` or `carve lint` reports a problem:
@@ -73,6 +91,7 @@ AI is deliberately narrow and optional:
 
 - Text PDFs use PyMuPDF and make no network request.
 - Scans, images, and complex layouts use one document-level vision request.
+- Hybrid mode gives the model bounded positioned-text evidence alongside images.
 - The model returns JSON, never executable content or final Carve syntax.
 - JSON can be inspected, versioned, corrected, and replayed offline.
 - No agents, embeddings, vector store, or automatic rewriting are involved.
@@ -87,6 +106,8 @@ The version-1 model accepts headings, paragraphs, flat lists, code blocks,
 quotes, admonitions, spanning tables, figures, thematic breaks, and page breaks.
 Inline content can represent text, common decoration, super/subscript, critic
 markup, inline footnotes, code, math, and links.
+Optional provenance records associate a block with a page, bounding box,
+confidence, warnings, and short evidence for review without affecting Carve output.
 Unknown fields and malformed nodes fail closed with a precise JSON path.
 The machine-readable contract is
 [`document-v1.schema.json`](src/pdf_to_carve/document-v1.schema.json).
@@ -100,10 +121,12 @@ escaping. The contract can evolve by adding a new version.
 - Deterministic text mode infers headings from font size; it does not reconstruct
   tables, lists, images, columns, or inline styling yet.
 - Vision accuracy and cost depend on the selected provider and model.
-- Figure placeholders describe intended asset paths; automatic figure cropping
-  is not part of 0.1.
+- `--assets-dir` extracts and deduplicates embedded raster images. Figure cropping
+  and exact model-placeholder matching remain manual review steps.
 - Very large PDFs may exceed a provider's request limits. Select a page range.
 - PDF content is untrusted input. Review converted documents before publishing.
+
+See [privacy and security](docs/privacy-security.md) before processing sensitive files.
 
 ## Development
 

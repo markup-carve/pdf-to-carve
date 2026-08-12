@@ -11,15 +11,17 @@ from typing import Literal
 
 import pymupdf
 
+from .cache import JsonCache, cache_key
 from .extract import extract_text_pdf, text_coverage
+from .layout import evidence_prompt, extract_embedded_images, positioned_text
 from .model import Document
 from .serialize import to_carve
-from .vision import transcribe_images
+from .vision import SYSTEM_PROMPT, transcribe_images
 
 
 @dataclass(frozen=True)
 class ConversionOptions:
-    mode: Literal["auto", "text", "vision"] = "auto"
+    mode: Literal["auto", "text", "vision", "hybrid"] = "auto"
     start_page: int = 1
     end_page: int | None = None
     model: str = "gpt-4o-mini"
@@ -28,6 +30,12 @@ class ConversionOptions:
     text_threshold: float = 80.0
     retries: int = 3
     carve_command: str | None = None
+    dpi: int = 180
+    max_pages: int = 20
+    cache_dir: Path | None = None
+    use_cache: bool = True
+    assets_dir: Path | None = None
+    max_input_mb: int = 100
 
 
 @dataclass(frozen=True)
@@ -38,7 +46,9 @@ class ConversionResult:
     diagnostics: tuple[str, ...] = ()
 
 
-def _render_pages(path: Path, directory: Path, start: int, end: int | None) -> list[Path]:
+def _render_pages(
+    path: Path, directory: Path, start: int, end: int | None, *, dpi: int, max_pages: int
+) -> list[Path]:
     if path.suffix.lower() != ".pdf":
         return [path]
     doc = pymupdf.open(path)
@@ -46,10 +56,12 @@ def _render_pages(path: Path, directory: Path, start: int, end: int | None) -> l
         last = doc.page_count if end is None else min(end, doc.page_count)
         if start < 1 or start > last:
             raise ValueError(f"invalid page range {start}-{last} for {doc.page_count} pages")
+        if last - start + 1 > max_pages:
+            raise ValueError(f"selected range has {last - start + 1} pages; maximum is {max_pages}")
         result = []
         for number in range(start - 1, last):
             target = directory / f"page-{number + 1}.png"
-            doc[number].get_pixmap(dpi=180, alpha=False).save(target)
+            doc[number].get_pixmap(dpi=dpi, alpha=False).save(target)
             result.append(target)
         return result
     finally:
@@ -86,6 +98,10 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
     path = path.resolve()
     if not path.is_file():
         raise FileNotFoundError(path)
+    if options.max_input_mb < 1:
+        raise ValueError("max_input_mb must be positive")
+    if path.stat().st_size > options.max_input_mb * 1024 * 1024:
+        raise ValueError(f"input exceeds the {options.max_input_mb} MiB safety limit")
     is_pdf = path.suffix.lower() == ".pdf"
     selected = options.mode
     if selected == "auto":
@@ -100,15 +116,46 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
             raise ValueError("text mode supports PDF input only")
         raw = extract_text_pdf(path, options.start_page, options.end_page)
     else:
+        if options.dpi < 72 or options.dpi > 400:
+            raise ValueError("dpi must be between 72 and 400")
+        if options.max_pages < 1:
+            raise ValueError("max_pages must be positive")
         with tempfile.TemporaryDirectory(prefix="pdf-to-carve-") as temp:
-            images = _render_pages(path, Path(temp), options.start_page, options.end_page)
-            raw = transcribe_images(
-                images,
-                model=options.model,
-                api_key=options.api_key,
-                base_url=options.base_url,
-                retries=options.retries,
+            images = _render_pages(
+                path,
+                Path(temp),
+                options.start_page,
+                options.end_page,
+                dpi=options.dpi,
+                max_pages=options.max_pages,
             )
+            context = None
+            if selected == "hybrid":
+                if not is_pdf:
+                    raise ValueError("hybrid mode supports PDF input only")
+                context = evidence_prompt(
+                    positioned_text(path, options.start_page, options.end_page)
+                )
+            cache = JsonCache(options.cache_dir) if options.cache_dir else None
+            key = cache_key(
+                files=images,
+                model=options.model,
+                prompt=f"{SYSTEM_PROMPT}\n{context or ''}",
+            )
+            raw = cache.get(key) if cache and options.use_cache else None
+            if raw is None:
+                raw = transcribe_images(
+                    images,
+                    model=options.model,
+                    api_key=options.api_key,
+                    base_url=options.base_url,
+                    retries=options.retries,
+                    context=context,
+                )
+                if cache and options.use_cache:
+                    cache.put(key, raw)
+    if options.assets_dir and is_pdf:
+        extract_embedded_images(path, options.assets_dir)
     document = Document.from_json(raw)
     source = to_carve(document)
     diagnostics = _official_check(source, options.carve_command) if options.carve_command else ()

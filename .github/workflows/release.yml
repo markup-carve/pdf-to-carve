@@ -46,9 +46,22 @@ jobs:
     environment:
       name: pypi
       url: https://pypi.org/p/pdf-to-carve
-    env:
-      PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
     steps:
+      # The secrets context is not readable from a step-level `if`, so the path
+      # is decided here instead. This step only reports whether the secret is
+      # set; the token itself reaches no other step, and in particular no
+      # third-party action.
+      - name: Decide the publish path
+        id: auth
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          if [ -n "$PYPI_API_TOKEN" ]; then
+            echo "mode=token" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=oidc" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/download-artifact@v4
         with:
           name: dist
@@ -58,14 +71,14 @@ jobs:
       # PyPI, configure a trusted publisher there and delete the secret; the
       # step below then takes over and no credential is stored anywhere.
       - name: Publish to PyPI (API token)
-        if: env.PYPI_API_TOKEN != ''
+        if: steps.auth.outputs.mode == 'token'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
           password: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Publish to PyPI (Trusted Publishing)
-        if: env.PYPI_API_TOKEN == ''
+        if: steps.auth.outputs.mode == 'oidc'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/

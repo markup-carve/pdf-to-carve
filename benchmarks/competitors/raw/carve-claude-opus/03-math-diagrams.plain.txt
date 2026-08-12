@@ -1,0 +1,58 @@
+Math, Diagrams and Charts
+
+Math and diagram fences are rendered in the browser, at print time: KaTeX typesets the math, Mermaid draws the diagrams, Chart.js paints the charts. All three settle under one window.__carveReady promise that print_cdp.py awaits, so nothing is half-drawn when the page is captured. Without the corresponding library installed, each construct degrades to its readable source.
+
+Inline and display math
+
+The mass-energy relation E = mc^2 appears inline in a sentence, while the Gaussian integral is shown as a centered display equation:
+
+\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
+
+Another inline example: the quadratic roots x = (-b \pm \sqrt{b^2 - 4ac})/2a .
+
+Diagrams
+
+A flowchart, rendered to inline SVG by Mermaid:
+
+flowchart LR
+  Parse --> AST --> Render --> PDF
+
+A second one, showing how the backends feed the same pipeline:
+
+flowchart TD
+  A[carve source] --> B[render.php]
+  A --> C[render.mjs]
+  B --> D[HTML fragment]
+  C --> D
+  D --> E[wrap.py]
+  E --> F[print_cdp.py]
+  F --> G[PDF]
+
+Charts
+
+A chart fence carries a Chart.js config as JSON, drawn to a <canvas> :
+
+{
+  "type": "line",
+  "data": {
+    "labels": ["Parse", "Inline", "Wrap", "Print"],
+    "datasets": [{
+      "label": "ms per stage",
+      "data": [3, 9, 2, 180],
+      "borderColor": "#1f6fc4",
+      "backgroundColor": "#1f6fc4"
+    }]
+  },
+  "options": {
+    "plugins": {
+      "title": { "display": true, "text": "Pipeline cost by stage" }
+    },
+    "scales": { "y": { "beginAtZero": true, "max": 180 } }
+  }
+}
+
+Point CARVE_KATEX , CARVE_MERMAID and CARVE_CHART at your installs, or let crv2pdf probe the usual locations.
+
+---
+
+By Mark Scherer · 2026-07-20

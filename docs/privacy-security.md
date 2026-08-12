@@ -4,8 +4,11 @@ Text mode is local: it reads the PDF with PDFium by default and makes no network
 Vision and hybrid modes send rendered pages to the configured API endpoint; hybrid
 also sends bounded extracted text and coordinates. Check the provider's retention,
 training, regional-processing, and access policies before using sensitive material.
-The optional `codex-cli` provider also sends these inputs to the Codex service using
-the CLI's existing authentication; “CLI” does not mean offline or local inference.
+The optional `codex-cli` and `claude-cli` providers also send these inputs to their
+respective remote services using each CLI's existing authentication; “CLI” does
+not mean offline or local inference. The Claude integration copies rendered pages
+into a temporary directory, grants only that directory to the `Read` tool, disables
+project customizations and session persistence, and rejects permission denials.
 
 Document content is untrusted data. The provider instruction explicitly forbids
 following instructions found inside a document, the returned JSON is strictly

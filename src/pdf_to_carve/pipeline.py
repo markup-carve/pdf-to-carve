@@ -22,7 +22,12 @@ from .pdfium_backend import positioned_text as pdfium_positioned_text
 from .pdfium_backend import render_pages as pdfium_render_pages
 from .pdfium_backend import text_coverage as pdfium_text_coverage
 from .serialize import to_carve
-from .vision import SYSTEM_PROMPT, transcribe_images, transcribe_images_codex
+from .vision import (
+    SYSTEM_PROMPT,
+    transcribe_images,
+    transcribe_images_claude,
+    transcribe_images_codex,
+)
 
 
 @dataclass(frozen=True)
@@ -30,7 +35,7 @@ class ConversionOptions:
     mode: Literal["auto", "text", "vision", "hybrid"] = "auto"
     start_page: int = 1
     end_page: int | None = None
-    model: str = "gpt-4o-mini"
+    model: str | None = None
     api_key: str | None = None
     base_url: str = "https://api.openai.com/v1"
     text_threshold: float = 80.0
@@ -42,7 +47,7 @@ class ConversionOptions:
     use_cache: bool = True
     assets_dir: Path | None = None
     max_input_mb: int = 100
-    provider: Literal["openai", "codex-cli"] = "openai"
+    provider: Literal["openai", "codex-cli", "claude-cli"] = "openai"
     pdf_backend: Literal["pdfium", "pymupdf"] = "pdfium"
 
 
@@ -112,6 +117,9 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
     if path.stat().st_size > options.max_input_mb * 1024 * 1024:
         raise ValueError(f"input exceeds the {options.max_input_mb} MiB safety limit")
     is_pdf = path.suffix.lower() == ".pdf"
+    if options.provider not in ("openai", "codex-cli", "claude-cli"):
+        raise ValueError(f"unsupported vision provider: {options.provider}")
+    model = options.model or ("sonnet" if options.provider == "claude-cli" else "gpt-4o-mini")
     if options.pdf_backend not in ("pdfium", "pymupdf"):
         raise ValueError(f"unsupported PDF backend: {options.pdf_backend}")
     extract_text = pdfium_extract_text if options.pdf_backend == "pdfium" else pymupdf_extract_text
@@ -171,17 +179,19 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
             cache = JsonCache(options.cache_dir) if options.cache_dir else None
             key = cache_key(
                 files=images,
-                model=f"{options.provider}:{options.model}",
+                model=f"{options.provider}:{model}",
                 prompt=f"{SYSTEM_PROMPT}\n{context or ''}",
             )
             raw = cache.get(key) if cache and options.use_cache else None
             if raw is None:
                 if options.provider == "codex-cli":
-                    raw = transcribe_images_codex(images, model=options.model, context=context)
+                    raw = transcribe_images_codex(images, model=model, context=context)
+                elif options.provider == "claude-cli":
+                    raw = transcribe_images_claude(images, model=model, context=context)
                 else:
                     raw = transcribe_images(
                         images,
-                        model=options.model,
+                        model=model,
                         api_key=options.api_key,
                         base_url=options.base_url,
                         retries=options.retries,

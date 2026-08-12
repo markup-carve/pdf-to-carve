@@ -5,7 +5,12 @@ from unittest.mock import patch
 
 import pytest
 
-from pdf_to_carve.vision import VisionError, transcribe_images, transcribe_images_codex
+from pdf_to_carve.vision import (
+    VisionError,
+    transcribe_images,
+    transcribe_images_claude,
+    transcribe_images_codex,
+)
 
 
 class Response:
@@ -120,3 +125,65 @@ def test_codex_cli_provider_requires_executable(tmp_path: Path) -> None:
         pytest.raises(VisionError, match="not found"),
     ):
         transcribe_images_codex([tmp_path / "page.png"], model="test")
+
+
+def test_claude_cli_provider_is_isolated_read_only_and_returns_json(tmp_path: Path) -> None:
+    image = tmp_path / "page.png"
+    image.write_bytes(b"png")
+
+    def run(command, **_kwargs):
+        assert command[0] == "/bin/claude"
+        assert "--safe-mode" in command
+        assert "--no-session-persistence" in command
+        assert command[command.index("--permission-mode") + 1] == "dontAsk"
+        assert command[command.index("--tools") + 1] == "Read"
+        allowed = Path(command[command.index("--add-dir") + 1])
+        assert allowed.name.startswith("pdf-to-carve-claude-")
+        assert str(image.resolve()) not in command[-1]
+        assert str(allowed / "page-1.png") in command[-1]
+        envelope = {
+            "subtype": "success",
+            "is_error": False,
+            "permission_denials": [],
+            "result": '```json\n{"version":1,"blocks":[]}\n```',
+        }
+        return type(
+            "Completed", (), {"returncode": 0, "stderr": "", "stdout": json.dumps(envelope)}
+        )()
+
+    with (
+        patch("pdf_to_carve.vision.shutil.which", return_value="/bin/claude"),
+        patch("pdf_to_carve.vision.subprocess.run", side_effect=run),
+    ):
+        assert transcribe_images_claude([image], model="sonnet", context="evidence") == {
+            "version": 1,
+            "blocks": [],
+        }
+
+
+def test_claude_cli_provider_rejects_permission_denials(tmp_path: Path) -> None:
+    image = tmp_path / "page.png"
+    image.write_bytes(b"png")
+    envelope = {
+        "subtype": "success",
+        "is_error": False,
+        "permission_denials": [{"tool_name": "Read"}],
+        "result": '{"version":1,"blocks":[]}',
+    }
+    completed = type(
+        "Completed", (), {"returncode": 0, "stderr": "", "stdout": json.dumps(envelope)}
+    )()
+    with (
+        patch("pdf_to_carve.vision.shutil.which", return_value="/bin/claude"),
+        patch("pdf_to_carve.vision.subprocess.run", return_value=completed),
+        pytest.raises(VisionError, match="denied required tool access: Read"),
+    ):
+        transcribe_images_claude([image], model="sonnet")
+
+
+def test_claude_cli_provider_requires_executable(tmp_path: Path) -> None:
+    with (
+        patch("pdf_to_carve.vision.shutil.which", return_value=None),
+        pytest.raises(VisionError, match="not found"),
+    ):
+        transcribe_images_claude([tmp_path / "page.png"], model="sonnet")

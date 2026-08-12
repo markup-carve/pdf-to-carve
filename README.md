@@ -55,6 +55,7 @@ pdf-to-carve document.pdf --mode text --start-page 2 --end-page 8
 OPENAI_API_KEY=... pdf-to-carve scan.pdf --mode vision --model gpt-4o-mini
 OPENAI_API_KEY=... pdf-to-carve complex.pdf --mode hybrid --cache-dir .cache/pdf-to-carve
 pdf-to-carve complex.pdf --mode hybrid --provider codex-cli --model gpt-5.6-sol
+pdf-to-carve complex.pdf --mode hybrid --provider claude-cli --model sonnet
 pdf-to-carve page.png --mode vision -o page.crv
 ```
 
@@ -68,6 +69,13 @@ when API billing is unavailable. It launches an ephemeral, read-only session,
 ignores repository rules and user configuration, validates the returned JSON
 locally, and otherwise uses the same hybrid pipeline. This is still a remote AI
 request—not local inference—and requires an image-capable Codex model.
+
+`--provider claude-cli` similarly uses an existing authenticated Claude Code
+installation. It defaults to `sonnet`, disables project customizations and
+session persistence, exposes only Claude's `Read` tool, and grants that tool
+access only to isolated copies of the rendered pages. Any permission denial,
+CLI error, non-JSON response, or locally invalid document fails the conversion.
+It is also a remote AI request and is intended for explicit local use.
 
 Use `--base-url` with an OpenAI-compatible Chat Completions endpoint. The
 configured model must accept image inputs and JSON-object response format.

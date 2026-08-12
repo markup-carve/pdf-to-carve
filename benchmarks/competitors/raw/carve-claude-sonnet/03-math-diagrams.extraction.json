@@ -1,0 +1,343 @@
+{
+  "version": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "level": 3,
+      "content": [
+        {
+          "type": "text",
+          "text": "CARVE-PDF \u00b7 CLIENT-SIDE RENDERERS"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "content": [
+        {
+          "type": "text",
+          "text": "Math, Diagrams and Charts"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "Math and diagram fences are rendered "
+        },
+        {
+          "type": "strong",
+          "children": [
+            {
+              "type": "text",
+              "text": "in the browser"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", at print time: KaTeX typesets the math, Mermaid draws the diagrams, Chart.js paints the charts. All three settle under one "
+        },
+        {
+          "type": "code",
+          "text": "window.__carveReady"
+        },
+        {
+          "type": "text",
+          "text": " promise that "
+        },
+        {
+          "type": "code",
+          "text": "print_cdp.py"
+        },
+        {
+          "type": "text",
+          "text": " awaits, so nothing is half-drawn when the page is captured. Without the corresponding library installed, each construct degrades to its readable source."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Inline and display math"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "The mass-energy relation "
+        },
+        {
+          "type": "math",
+          "text": "E = mc^2"
+        },
+        {
+          "type": "text",
+          "text": " appears inline in a sentence, while the Gaussian integral is shown as a centered display equation:"
+        }
+      ]
+    },
+    {
+      "type": "quote",
+      "content": [
+        {
+          "type": "math",
+          "text": "\\int_{-\\infty}^{\\infty} e^{-x^2}\\, dx = \\sqrt{\\pi}"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "Another inline example: the quadratic roots "
+        },
+        {
+          "type": "math",
+          "text": "x = (-b \\pm \\sqrt{b^2 - 4ac})/2a"
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Diagrams"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "A flowchart, rendered to inline SVG by Mermaid:"
+        }
+      ]
+    },
+    {
+      "type": "code_block",
+      "language": "mermaid",
+      "text": "flowchart LR\n  Parse --> AST --> Render --> PDF"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "A second one, showing how the backends feed the same pipeline:"
+        }
+      ]
+    },
+    {
+      "type": "code_block",
+      "language": "mermaid",
+      "text": "flowchart TD\n  carve_source[carve source] --> render_php[render.php]\n  carve_source --> render_mjs[render.mjs]\n  render_php --> html[HTML fragment]\n  render_mjs --> html\n  html --> wrap[wrap.py]\n  wrap --> print_cdp[print_cdp.py]\n  print_cdp --> pdf[PDF]"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Charts"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "A "
+        },
+        {
+          "type": "code",
+          "text": "chart"
+        },
+        {
+          "type": "text",
+          "text": " fence carries a Chart.js config as JSON, drawn to a "
+        },
+        {
+          "type": "code",
+          "text": "<canvas>"
+        },
+        {
+          "type": "text",
+          "text": ":"
+        }
+      ]
+    },
+    {
+      "type": "code_block",
+      "language": "chart",
+      "text": "{\n  \"type\": \"line\",\n  \"data\": {\n    \"labels\": [\"Parse\", \"Inline\", \"Wrap\", \"Print\"],\n    \"datasets\": [{\n      \"label\": \"ms per stage\",\n      \"data\": [3, 9, 2, 180],\n      \"borderColor\": \"#3b6fd6\",\n      \"backgroundColor\": \"#3b6fd6\",\n      \"fill\": false\n    }]\n  },\n  \"options\": {\n    \"plugins\": {\n      \"title\": {\n        \"display\": true,\n        \"text\": \"Pipeline cost by stage\"\n      }\n    }\n  }\n}"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "Point "
+        },
+        {
+          "type": "code",
+          "text": "CARVE_KATEX"
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "code",
+          "text": "CARVE_MERMAID"
+        },
+        {
+          "type": "text",
+          "text": " and "
+        },
+        {
+          "type": "code",
+          "text": "CARVE_CHART"
+        },
+        {
+          "type": "text",
+          "text": " at your installs, or let "
+        },
+        {
+          "type": "code",
+          "text": "crv2pdf"
+        },
+        {
+          "type": "text",
+          "text": " probe the usual locations."
+        }
+      ]
+    },
+    {
+      "type": "thematic_break"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "By Mark Scherer \u00b7 2026-07-20"
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "block": 0,
+      "page": 1,
+      "confidence": 0.98
+    },
+    {
+      "block": 1,
+      "page": 1,
+      "confidence": 0.98
+    },
+    {
+      "block": 2,
+      "page": 1,
+      "confidence": 0.95
+    },
+    {
+      "block": 3,
+      "page": 1,
+      "confidence": 0.95
+    },
+    {
+      "block": 4,
+      "page": 1,
+      "confidence": 0.9
+    },
+    {
+      "block": 5,
+      "page": 1,
+      "confidence": 0.9
+    },
+    {
+      "block": 6,
+      "page": 1,
+      "confidence": 0.95
+    },
+    {
+      "block": 7,
+      "page": 1,
+      "confidence": 0.9
+    },
+    {
+      "block": 8,
+      "page": 1,
+      "confidence": 0.85,
+      "warnings": [
+        "mermaid reconstructed from rendered diagram"
+      ]
+    },
+    {
+      "block": 9,
+      "page": 1,
+      "confidence": 0.9
+    },
+    {
+      "block": 10,
+      "page": 2,
+      "confidence": 0.85,
+      "warnings": [
+        "mermaid reconstructed from rendered diagram"
+      ]
+    },
+    {
+      "block": 11,
+      "page": 2,
+      "confidence": 0.95
+    },
+    {
+      "block": 12,
+      "page": 2,
+      "confidence": 0.9
+    },
+    {
+      "block": 13,
+      "page": 3,
+      "confidence": 0.85,
+      "warnings": [
+        "chart.js config reconstructed from rendered chart image"
+      ]
+    },
+    {
+      "block": 14,
+      "page": 3,
+      "confidence": 0.95
+    },
+    {
+      "block": 15,
+      "page": 3,
+      "confidence": 0.9
+    },
+    {
+      "block": 16,
+      "page": 3,
+      "confidence": 0.95
+    }
+  ]
+}

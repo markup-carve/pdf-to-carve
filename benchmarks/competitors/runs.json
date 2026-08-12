@@ -103,6 +103,28 @@
       }
     },
     {
+      "id": "carve-claude-sonnet",
+      "name": "Carve hybrid via Claude CLI (Sonnet)",
+      "version": "pdf-to-carve 152ca7a plus claude-cli adapter; Claude Code 2.1.228; claude-sonnet-5 low",
+      "license": "MIT project; measured remote model service terms apply",
+      "command": "pdf-to-carve {input} --mode hybrid --provider claude-cli --model sonnet --dpi 160 --save-json {output}.json -o {output}.crv",
+      "documents": {
+        "02-showcase": {"status": "complete", "seconds": 18.02, "rss_kb": 358116, "reported_api_equivalent_usd": 0.0626367},
+        "03-math-diagrams": {"status": "complete", "seconds": 23.37, "rss_kb": 333104, "reported_api_equivalent_usd": 0.1126562}
+      }
+    },
+    {
+      "id": "carve-claude-opus",
+      "name": "Carve hybrid via Claude CLI (Opus)",
+      "version": "pdf-to-carve 152ca7a plus claude-cli adapter; Claude Code 2.1.228; claude-opus-5 low",
+      "license": "MIT project; measured remote model service terms apply",
+      "command": "pdf-to-carve {input} --mode hybrid --provider claude-cli --model opus --dpi 160 --save-json {output}.json -o {output}.crv",
+      "documents": {
+        "02-showcase": {"status": "complete", "seconds": 25.47, "rss_kb": 333720, "reported_api_equivalent_usd": 0.126482},
+        "03-math-diagrams": {"status": "complete", "seconds": 33.13, "rss_kb": 333720, "reported_api_equivalent_usd": 0.181336}
+      }
+    },
+    {
       "id": "markpdfdown",
       "name": "MarkPDFdown",
       "version": "1.1.2 at 4b38fd8f91bd5cd61181bd3c68bf025f6040115b; gpt-4o",

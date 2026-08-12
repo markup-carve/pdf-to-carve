@@ -1,0 +1,12 @@
+{
+  "command_exit_code": 0,
+  "output_bytes": 0,
+  "page_count": 1,
+  "provider": "openai",
+  "model": "gpt-4o",
+  "attempts_configured": 1,
+  "provider_error": "credit balance exhausted",
+  "tool_log_outcome": "Conversion completed successfully",
+  "seconds": 7.68,
+  "rss_kb": 348684
+}

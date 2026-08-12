@@ -1,0 +1,387 @@
+{
+  "metric": "SequenceMatcher, NFC + collapsed whitespace",
+  "raw_artifacts": {
+    "raw/carve-hybrid/02-showcase.ast.json": "55c0b949ab92add5b00f58ff210b725f73c4deac07996966504ca7f7fc8a017f",
+    "raw/carve-hybrid/02-showcase.extraction.json": "1c38ab57ecc6a4818fb12b43d8d0adc8fc5d33e3e60eb138c8b74a6f95441b07",
+    "raw/carve-hybrid/02-showcase.plain.txt": "7c1f889fc37dacf5a7f963abf2db9266a8b4364ce9dcf2391a036e57aae6223b",
+    "raw/carve-hybrid/02-showcase.source.crv": "5a7705860a30ff2d6eec0fff799e12c36b8ba68bfff3d597b9000923a822ec69",
+    "raw/carve-hybrid/03-math-diagrams.ast.json": "f82b50b663b94534150056b7d233e84dc4731fd5a89294287117874a87d97ce9",
+    "raw/carve-hybrid/03-math-diagrams.extraction.json": "505ea0c2ab4ac124556f8f65d06c6c64d502f72f56c44c67b1a92da274e53a92",
+    "raw/carve-hybrid/03-math-diagrams.plain.txt": "6199054bc6c046cdfb8704340395b0896c863c6e84bf690340328ec7bf753052",
+    "raw/carve-hybrid/03-math-diagrams.source.crv": "f0e703a0ede0420383944a51d8ed3bc85a4371fb84efed6c3395e61cec1d13fb",
+    "raw/carve-text/02-showcase.ast.json": "a7220bd464fca71fc297efd068b71c4f98c9e50c56287f9876a3ab6405d8cf9b",
+    "raw/carve-text/02-showcase.plain.txt": "192d74275817a1be171e385eea865af11beb97429a4f7774778cee86981bc59a",
+    "raw/carve-text/02-showcase.source.crv": "f8a954f79c688fb5234c88c5e03006706b5fbc3b11dfb225bcaabf4d66f5f9c8",
+    "raw/carve-text/03-math-diagrams.ast.json": "e63a678935ad39e9165f3554e1195573f0d886ed4540887bbeb06f0a2d8fc190",
+    "raw/carve-text/03-math-diagrams.plain.txt": "4d615935136c682f664ded8a00905f4b2f0c635ec90ff670ebaac4c253fc24b5",
+    "raw/carve-text/03-math-diagrams.source.crv": "8732584dda32b7268493bd92e1fc2f7580322caf9f67e747a6f3e48458081f29",
+    "raw/docling/02-showcase.ast.json": "7a7e6d19e193d2ab862c3bc0e33de63a47b64efd16cf5fb90a37da4c260b3272",
+    "raw/docling/02-showcase.plain.txt": "13f6eed387c751c97b218d4adf14c899180b9028632b5727d0b3a36431ec17cd",
+    "raw/docling/02-showcase.source.md": "1a1312eed3914f2fa24782cf9cd40fb4d3cd87a954ccf6486baaa573c6a2e827",
+    "raw/marker/02-showcase.ast.json": "caa3c0e0bd42a355780b4090293046bd877dbeb76371d1d312ec1b5705f87a00",
+    "raw/marker/02-showcase.plain.txt": "80d1d154d582bb7a55724a31c24eac246f6d78069bba2fe09f80bb3fdac86ab5",
+    "raw/marker/02-showcase.source.md": "fc3d405cf1ba76a89a6bcb49fb71ea69dec4039c74e3998c3d3e23bacd693663",
+    "raw/marker/03-math-diagrams.ast.json": "5bd9836696429c30f5625850ef85dca334127e5c38b10e83ecf363ae038ed4cc",
+    "raw/marker/03-math-diagrams.plain.txt": "17912a126d1819038853e4224d9c5bab80698a752643507b04257ac3f201104a",
+    "raw/marker/03-math-diagrams.source.md": "f988b6faa4d7970d7b38b4c23227b850f8dc9ca0c1646dce9f84c73e56afd135",
+    "raw/markitdown/02-showcase.ast.json": "98813e9777edaa80013ec8cc3f32ab86cf639c464a72b619d9c584de8f5280ef",
+    "raw/markitdown/02-showcase.plain.txt": "e39c4060b468278f12e0546605fae6cdb8ff182feea732e7d3ab6d458b7d122a",
+    "raw/markitdown/02-showcase.source.md": "2ea60cbf03ffa5ea78d1021df81fb339e177bb4c7ca4323a9a7273d1f765f3c0",
+    "raw/markitdown/03-math-diagrams.ast.json": "3e1a41648670a3d4a02624c344dbad8b514b109f660c9dd94459fe437f09fe01",
+    "raw/markitdown/03-math-diagrams.plain.txt": "d4f68160bc839bbd194898a8899cba630818418b46818a2fc89411c4d221a47e",
+    "raw/markitdown/03-math-diagrams.source.md": "b14a795fd05057ebeee28c9263b911b12e53946cc74dd157fe7ae0c4082ddc03",
+    "raw/markpdfdown/02-showcase.status.json": "bea5c50201f87eab4b5c1f4eea9385abb154e15d647d1c10d909ffc9e6fdfb65",
+    "raw/markpdfdown/02-showcase.stderr.txt": "dd43ee548705848a2d2773832fb624223fe7f763c10f82212d43ab3bec9c2fbf",
+    "raw/mineru/02-showcase.ast.json": "ef5ed494215aab8b5e4763c9c3ab457bb48907fd067f72b0c41c989cf7d40ff0",
+    "raw/mineru/02-showcase.plain.txt": "2e60ae7ee262cd55cddfc4865a129383b39864a06d24dc2fcbc0cbc20dc018b2",
+    "raw/mineru/02-showcase.source.md": "aa4dc36a9169f77ecbb6e60a7403603c0ea7d113d589a294cb5a79a7e2a8c518",
+    "raw/mineru/03-math-diagrams.ast.json": "71126a3414bde29169296419907bc929ed3dc59bc0e1f09952d812df31615d2c",
+    "raw/mineru/03-math-diagrams.plain.txt": "ca01ac022e24ee79ce1f019409b8c88ecfcd09e4692de787d497688cc8510442",
+    "raw/mineru/03-math-diagrams.source.md": "42ff15929933acfebe5d8f47b2e8dd78b1bfd3f510a3508a04144fa084e912d9",
+    "raw/pymupdf4llm/02-showcase.ast.json": "4f94f43c03d25754a154812318076df35d8be701aa725b88c99e750b8bf74b85",
+    "raw/pymupdf4llm/02-showcase.plain.txt": "b67abcb1c53c4d3732101844555653c9c9bbc00b6ed84cf33bc9a7c49e450fe4",
+    "raw/pymupdf4llm/02-showcase.source.md": "ad6edade14023100da933cf80cc58f0596fa10ca7d63cf3c2d3a63858756ddf3",
+    "raw/pymupdf4llm/03-math-diagrams.ast.json": "41316bae83a06ad68863cc6d589c8d00abe610697ed52df8dbe85ed64e6a8413",
+    "raw/pymupdf4llm/03-math-diagrams.plain.txt": "058e8d5bfa1e0ae238ceb73dbffb1158ec777ed82485cd1300595c60d3da2ea9",
+    "raw/pymupdf4llm/03-math-diagrams.source.md": "3724cdc3177905136b42ada5858b5fa8456b462c9a00fade088f5039ad8b89bf",
+    "raw/truth/02-showcase.ast.json": "40e052767a96c92d60eb8f0e08f6005e11d68c1699af5ed6b96c1e8e6299192f",
+    "raw/truth/02-showcase.plain.txt": "36e73dbf1e3adf7f55206464e70a88f4c266eed9f86c5012db02e398293627b9",
+    "raw/truth/03-math-diagrams.ast.json": "cfd26d9f48e1f13b05139eab00aa4f913fa0c034c893f4212e85adeeb68f8282",
+    "raw/truth/03-math-diagrams.plain.txt": "4409a26173e2b6a541a3a6f916f8f299bc95e8b0f30ac685b3b03ed7fec40962",
+    "raw/unstructured/02-showcase.plain.txt": "a7a0c8f334f49697b876ebd25d9feb573bef06dd05a22a41b3f920307f2dd76e",
+    "raw/unstructured/03-math-diagrams.plain.txt": "e3ce65100e87f21611edab11d6a11655f83026c2da21094eeb11471f9e7df316"
+  },
+  "schema": 1,
+  "tools": [
+    {
+      "completed": 2,
+      "corpus_size": 2,
+      "id": "carve-hybrid",
+      "mean_character": 0.93447,
+      "mean_structure": 0.873188,
+      "mean_word": 0.860556,
+      "name": "Carve hybrid via Codex CLI",
+      "observed_rss_kb": [
+        188956,
+        189916
+      ],
+      "observed_seconds": [
+        48.84,
+        29.88
+      ],
+      "samples": [
+        {
+          "character": 0.95667,
+          "fixture": "02-showcase",
+          "status": "complete",
+          "structure": {
+            "expected": 23,
+            "recall": 0.913043,
+            "recovered": 21
+          },
+          "word": 0.928571
+        },
+        {
+          "character": 0.912269,
+          "fixture": "03-math-diagrams",
+          "status": "complete",
+          "structure": {
+            "expected": 6,
+            "recall": 0.833333,
+            "recovered": 5
+          },
+          "word": 0.792541
+        }
+      ],
+      "version": "pdf-to-carve a23249a; gpt-5.6-sol low"
+    },
+    {
+      "completed": 1,
+      "corpus_size": 2,
+      "id": "docling",
+      "mean_character": 0.920482,
+      "mean_structure": 0.217391,
+      "mean_word": 0.858086,
+      "name": "Docling",
+      "observed_rss_kb": [],
+      "observed_seconds": [],
+      "samples": [
+        {
+          "character": 0.920482,
+          "fixture": "02-showcase",
+          "status": "complete",
+          "structure": {
+            "expected": 23,
+            "recall": 0.217391,
+            "recovered": 5
+          },
+          "word": 0.858086
+        },
+        {
+          "fixture": "03-math-diagrams",
+          "status": "timeout"
+        }
+      ],
+      "version": "2.119.0"
+    },
+    {
+      "completed": 2,
+      "corpus_size": 2,
+      "id": "unstructured",
+      "mean_character": 0.830662,
+      "mean_structure": null,
+      "mean_word": 0.777275,
+      "name": "Unstructured fast",
+      "observed_rss_kb": [],
+      "observed_seconds": [],
+      "samples": [
+        {
+          "character": 0.86024,
+          "fixture": "02-showcase",
+          "status": "complete",
+          "word": 0.801303
+        },
+        {
+          "character": 0.801084,
+          "fixture": "03-math-diagrams",
+          "status": "complete",
+          "word": 0.753247
+        }
+      ],
+      "version": "0.25.2"
+    },
+    {
+      "completed": 2,
+      "corpus_size": 2,
+      "id": "carve-text",
+      "mean_character": 0.827105,
+      "mean_structure": 0.105073,
+      "mean_word": 0.77208,
+      "name": "Carve deterministic text",
+      "observed_rss_kb": [
+        58340,
+        62268
+      ],
+      "observed_seconds": [
+        0.38,
+        0.31
+      ],
+      "samples": [
+        {
+          "character": 0.86024,
+          "fixture": "02-showcase",
+          "status": "complete",
+          "structure": {
+            "expected": 23,
+            "recall": 0.043478,
+            "recovered": 1
+          },
+          "word": 0.801303
+        },
+        {
+          "character": 0.79397,
+          "fixture": "03-math-diagrams",
+          "status": "complete",
+          "structure": {
+            "expected": 6,
+            "recall": 0.166667,
+            "recovered": 1
+          },
+          "word": 0.742857
+        }
+      ],
+      "version": "pdf-to-carve 4d28758; PyMuPDF backend"
+    },
+    {
+      "completed": 2,
+      "corpus_size": 2,
+      "id": "markitdown",
+      "mean_character": 0.818957,
+      "mean_structure": 0.17029,
+      "mean_word": 0.745699,
+      "name": "Microsoft MarkItDown",
+      "observed_rss_kb": [
+        148116,
+        149912
+      ],
+      "observed_seconds": [
+        1.54,
+        1.35
+      ],
+      "samples": [
+        {
+          "character": 0.844837,
+          "fixture": "02-showcase",
+          "status": "complete",
+          "structure": {
+            "expected": 23,
+            "recall": 0.173913,
+            "recovered": 4
+          },
+          "word": 0.782353
+        },
+        {
+          "character": 0.793077,
+          "fixture": "03-math-diagrams",
+          "status": "complete",
+          "structure": {
+            "expected": 6,
+            "recall": 0.166667,
+            "recovered": 1
+          },
+          "word": 0.709046
+        }
+      ],
+      "version": "0.1.7"
+    },
+    {
+      "completed": 2,
+      "corpus_size": 2,
+      "id": "marker",
+      "mean_character": 0.806408,
+      "mean_structure": 0.384058,
+      "mean_word": 0.812381,
+      "name": "Marker",
+      "observed_rss_kb": [
+        992468,
+        1000928
+      ],
+      "observed_seconds": [
+        78.43,
+        60.37
+      ],
+      "samples": [
+        {
+          "character": 0.899345,
+          "fixture": "02-showcase",
+          "status": "complete",
+          "structure": {
+            "expected": 23,
+            "recall": 0.434783,
+            "recovered": 10
+          },
+          "word": 0.886667
+        },
+        {
+          "character": 0.713471,
+          "fixture": "03-math-diagrams",
+          "status": "complete",
+          "structure": {
+            "expected": 6,
+            "recall": 0.333333,
+            "recovered": 2
+          },
+          "word": 0.738095
+        }
+      ],
+      "version": "2.0.0"
+    },
+    {
+      "completed": 2,
+      "corpus_size": 2,
+      "id": "mineru",
+      "mean_character": 0.793001,
+      "mean_structure": 0.253623,
+      "mean_word": 0.715068,
+      "name": "MinerU",
+      "observed_rss_kb": [
+        2403732,
+        2213056
+      ],
+      "observed_seconds": [
+        64.48,
+        28.2
+      ],
+      "samples": [
+        {
+          "character": 0.845638,
+          "fixture": "02-showcase",
+          "status": "complete",
+          "structure": {
+            "expected": 23,
+            "recall": 0.173913,
+            "recovered": 4
+          },
+          "word": 0.745645
+        },
+        {
+          "character": 0.740364,
+          "fixture": "03-math-diagrams",
+          "status": "complete",
+          "structure": {
+            "expected": 6,
+            "recall": 0.333333,
+            "recovered": 2
+          },
+          "word": 0.684492
+        }
+      ],
+      "version": "3.4.4"
+    },
+    {
+      "completed": 2,
+      "corpus_size": 2,
+      "id": "pymupdf4llm",
+      "mean_character": 0.775756,
+      "mean_structure": 0.550725,
+      "mean_word": 0.7583,
+      "name": "PyMuPDF4LLM",
+      "observed_rss_kb": [
+        151412,
+        152328
+      ],
+      "observed_seconds": [
+        1.29,
+        1.08
+      ],
+      "samples": [
+        {
+          "character": 0.796117,
+          "fixture": "02-showcase",
+          "status": "complete",
+          "structure": {
+            "expected": 23,
+            "recall": 0.434783,
+            "recovered": 10
+          },
+          "word": 0.769231
+        },
+        {
+          "character": 0.755396,
+          "fixture": "03-math-diagrams",
+          "status": "complete",
+          "structure": {
+            "expected": 6,
+            "recall": 0.666667,
+            "recovered": 4
+          },
+          "word": 0.747368
+        }
+      ],
+      "version": "1.28.2"
+    },
+    {
+      "completed": 0,
+      "corpus_size": 2,
+      "id": "markpdfdown",
+      "name": "MarkPDFdown",
+      "observed_rss_kb": [
+        348684
+      ],
+      "observed_seconds": [
+        7.68
+      ],
+      "samples": [
+        {
+          "fixture": "02-showcase",
+          "status": "provider_error_empty_output_exit_0"
+        },
+        {
+          "fixture": "03-math-diagrams",
+          "status": "not_attempted_after_shared_provider_exhaustion"
+        }
+      ],
+      "version": "1.1.2 at 4b38fd8f91bd5cd61181bd3c68bf025f6040115b; gpt-4o"
+    }
+  ]
+}

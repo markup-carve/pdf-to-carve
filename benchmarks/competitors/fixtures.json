@@ -1,0 +1,20 @@
+{
+  "source_commit": "19e9e4565133eb7cb62e29f801515b73386cf161",
+  "source_repository": "https://github.com/markup-carve/carve-pdf",
+  "fixtures": [
+    {
+      "id": "02-showcase",
+      "pdf_url": "https://raw.githubusercontent.com/markup-carve/carve-pdf/19e9e4565133eb7cb62e29f801515b73386cf161/examples/02-showcase.pdf",
+      "pdf_sha256": "e572428e76d3d58335d0c0de7c26ef74da8f1551e99daa9f61322ca6148e19a2",
+      "source_url": "https://raw.githubusercontent.com/markup-carve/carve-pdf/19e9e4565133eb7cb62e29f801515b73386cf161/examples/02-showcase.crv",
+      "source_sha256": "fbb96743e10e2ab862a5603d9b2d9138e1d1ec53289c8a470a28ee09899b5fb7"
+    },
+    {
+      "id": "03-math-diagrams",
+      "pdf_url": "https://raw.githubusercontent.com/markup-carve/carve-pdf/19e9e4565133eb7cb62e29f801515b73386cf161/examples/03-math-diagrams.pdf",
+      "pdf_sha256": "734ea88487bf2aa1b6f1ceaef7c4eb6d1d5260d7b18b9b78dc6a1697d13e2dd9",
+      "source_url": "https://raw.githubusercontent.com/markup-carve/carve-pdf/19e9e4565133eb7cb62e29f801515b73386cf161/examples/03-math-diagrams.crv",
+      "source_sha256": "797f17da73a97954e1d5b136239d079c3c42b368032187961076fa85de4dc8a2"
+    }
+  ]
+}

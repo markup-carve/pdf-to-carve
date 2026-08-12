@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "run_date": "2026-08-12",
+  "environment": {
+    "kernel": "Linux 7.0.0-28-generic x86_64",
+    "logical_cpus": 16,
+    "python": "3.12.3",
+    "timing": "/usr/bin/time -f 'seconds=%e rss_kb=%M'",
+    "execution": "sequential CPU runs; vision requests use the named remote model"
+  },
+  "normalization": {
+    "markdown": "official Carve Markdown importer, then Carve AST and plain-text renderer",
+    "carve": "official Carve parser and plain-text renderer",
+    "plain_text": "scored directly; no structural score"
+  },
+  "tools": [
+    {
+      "id": "carve-hybrid",
+      "name": "Carve hybrid via Codex CLI",
+      "version": "pdf-to-carve a23249a; gpt-5.6-sol low",
+      "license": "MIT project; measured PyMuPDF backend and remote model service terms apply",
+      "command": "pdf-to-carve {input} --mode hybrid --provider codex-cli --model gpt-5.6-sol --save-json {output}.json -o {output}.crv",
+      "documents": {
+        "02-showcase": {"status": "complete", "seconds": 48.84, "rss_kb": 188956},
+        "03-math-diagrams": {"status": "complete", "seconds": 29.88, "rss_kb": 189916}
+      }
+    },
+    {
+      "id": "docling",
+      "name": "Docling",
+      "version": "2.119.0",
+      "license": "MIT",
+      "command": "docling {input} --to md --output {output_dir}",
+      "documents": {
+        "02-showcase": {"status": "complete"},
+        "03-math-diagrams": {"status": "timeout", "batch_seconds": 300.52, "batch_rss_kb": 1841964}
+      }
+    },
+    {
+      "id": "unstructured",
+      "name": "Unstructured fast",
+      "version": "0.25.2",
+      "license": "Apache-2.0",
+      "command": "partition_pdf(filename={input}, strategy='fast')",
+      "documents": {
+        "02-showcase": {"status": "complete", "batch_seconds": 10.30, "batch_rss_kb": 964316},
+        "03-math-diagrams": {"status": "complete", "batch_seconds": 10.30, "batch_rss_kb": 964316}
+      }
+    },
+    {
+      "id": "carve-text",
+      "name": "Carve deterministic text",
+      "version": "pdf-to-carve 4d28758; PyMuPDF backend",
+      "license": "MIT project; PyMuPDF AGPL-3.0 or commercial",
+      "command": "pdf-to-carve {input} --mode text -o {output}.crv",
+      "documents": {
+        "02-showcase": {"status": "complete", "seconds": 0.38, "rss_kb": 58340},
+        "03-math-diagrams": {"status": "complete", "seconds": 0.31, "rss_kb": 62268}
+      }
+    },
+    {
+      "id": "markitdown",
+      "name": "Microsoft MarkItDown",
+      "version": "0.1.7",
+      "license": "MIT",
+      "command": "markitdown {input} > {output}.md",
+      "documents": {
+        "02-showcase": {"status": "complete", "seconds": 1.54, "rss_kb": 148116},
+        "03-math-diagrams": {"status": "complete", "seconds": 1.35, "rss_kb": 149912}
+      }
+    },
+    {
+      "id": "marker",
+      "name": "Marker",
+      "version": "2.0.0",
+      "license": "Apache-2.0 code at measured version; model terms also apply",
+      "command": "marker_single {input} --output_dir {output_dir}",
+      "documents": {
+        "02-showcase": {"status": "complete", "seconds": 78.43, "rss_kb": 992468},
+        "03-math-diagrams": {"status": "complete", "seconds": 60.37, "rss_kb": 1000928}
+      }
+    },
+    {
+      "id": "mineru",
+      "name": "MinerU",
+      "version": "3.4.4",
+      "license": "MinerU Open Source License (Apache-2.0 based, with additional conditions)",
+      "command": "mineru -p {input} -o {output_dir}",
+      "documents": {
+        "02-showcase": {"status": "complete", "seconds": 64.48, "rss_kb": 2403732},
+        "03-math-diagrams": {"status": "complete", "seconds": 28.20, "rss_kb": 2213056}
+      }
+    },
+    {
+      "id": "pymupdf4llm",
+      "name": "PyMuPDF4LLM",
+      "version": "1.28.2",
+      "license": "AGPL-3.0 or commercial",
+      "command": "python -c 'import pymupdf4llm; print(pymupdf4llm.to_markdown(\"{input}\"))' > {output}.md",
+      "documents": {
+        "02-showcase": {"status": "complete", "seconds": 1.29, "rss_kb": 151412},
+        "03-math-diagrams": {"status": "complete", "seconds": 1.08, "rss_kb": 152328}
+      }
+    },
+    {
+      "id": "markpdfdown",
+      "name": "MarkPDFdown",
+      "version": "1.1.2 at 4b38fd8f91bd5cd61181bd3c68bf025f6040115b; gpt-4o",
+      "license": "Apache-2.0 project; required PyMuPDF is AGPL-3.0 or commercial; remote model terms apply",
+      "command": "MODEL_NAME=gpt-4o RETRY_TIMES=1 markpdfdown --input {input} --output {output}.md",
+      "documents": {
+        "02-showcase": {"status": "provider_error_empty_output_exit_0", "seconds": 7.68, "rss_kb": 348684},
+        "03-math-diagrams": {"status": "not_attempted_after_shared_provider_exhaustion"}
+      }
+    }
+  ]
+}

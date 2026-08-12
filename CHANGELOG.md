@@ -13,6 +13,8 @@
 - Document PDF-backend licensing choices and the recommended migration path.
 - Add permissively licensed PDFium as the default PDF backend and retain PyMuPDF
   as an optional compatibility extra.
+- Publish a reproducible competitor benchmark with pinned provenance, raw
+  normalized outputs, failure records, and deterministic scoring.
 
 ## 0.1.0 - 2026-08-12
 

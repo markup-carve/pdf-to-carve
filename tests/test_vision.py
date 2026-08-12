@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from pdf_to_carve.vision import VisionError, transcribe_images
+from pdf_to_carve.vision import VisionError, transcribe_images, transcribe_images_codex
 
 
 class Response:
@@ -87,3 +87,36 @@ def test_provider_rejects_oversized_response(tmp_path: Path) -> None:
         pytest.raises(VisionError, match="exceeded"),
     ):
         transcribe_images([image], model="test", api_key="secret")
+
+
+def test_codex_cli_provider_is_read_only_ephemeral_and_returns_json(tmp_path: Path) -> None:
+    image = tmp_path / "page.png"
+    image.write_bytes(b"png")
+
+    def run(command, **kwargs):
+        output = Path(command[command.index("--output-last-message") + 1])
+        output.write_text('{"version":1,"blocks":[]}')
+        assert command[0] == "/bin/codex"
+        assert "--ephemeral" in command
+        assert "--ignore-user-config" in command
+        assert command[command.index("--sandbox") + 1] == "read-only"
+        assert str(image.resolve()) in command
+        assert "evidence" in kwargs["input"]
+        return type("Completed", (), {"returncode": 0, "stderr": "", "stdout": ""})()
+
+    with (
+        patch("pdf_to_carve.vision.shutil.which", return_value="/bin/codex"),
+        patch("pdf_to_carve.vision.subprocess.run", side_effect=run),
+    ):
+        assert transcribe_images_codex([image], model="test-model", context="evidence") == {
+            "version": 1,
+            "blocks": [],
+        }
+
+
+def test_codex_cli_provider_requires_executable(tmp_path: Path) -> None:
+    with (
+        patch("pdf_to_carve.vision.shutil.which", return_value=None),
+        pytest.raises(VisionError, match="not found"),
+    ):
+        transcribe_images_codex([tmp_path / "page.png"], model="test")

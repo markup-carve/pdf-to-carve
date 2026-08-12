@@ -9,6 +9,8 @@
 - Add an escaped, self-contained HTML review report.
 - Document the review workflow and privacy/security boundaries.
 - Add reproducible PDF-to-Carve and Markdown comparison examples.
+- Add an opt-in authenticated Codex CLI vision provider with local validation.
+- Document PDF-backend licensing choices and the recommended migration path.
 
 ## 0.1.0 - 2026-08-12
 

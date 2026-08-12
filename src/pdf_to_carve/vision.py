@@ -6,6 +6,9 @@ import base64
 import json
 import mimetypes
 import os
+import shutil
+import subprocess
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -31,6 +34,26 @@ legible, reconstruct a minimal equivalent code_block with language mermaid; othe
 figure. When chart labels and values are legible, reconstruct a valid Chart.js JSON code_block
 with language chart; otherwise use a figure. Use figure src placeholders exactly as
 assets/page-N-figure-M.png. Include uncertain visible text rather than guessing silently."""
+
+# The contract uses explicit ``type`` discriminators. Keep a compact example in provider
+# instructions because some models otherwise invent shorthand objects such as
+# ``{"heading": {...}}`` even when the supported fields are described correctly.
+SYSTEM_PROMPT += """
+Use explicit type discriminators exactly like this shape:
+{"version":1,"blocks":[{"type":"heading","level":1,"content":[{"type":"text","text":"Title"}]},{"type":"paragraph","content":[{"type":"strong","children":[{"type":"text","text":"Important"}]}]}],"provenance":[{"block":0,"page":1,"confidence":0.99}]}
+Do not wrap nodes under keys named heading, paragraph, text, or another type."""
+SYSTEM_PROMPT += """
+Every content, title, caption, attribution, children, and replacement field is an inline array,
+never an array of paragraph or other block nodes. Omit optional fields instead of emitting empty
+strings. Admonition content is one inline array; join its visible paragraphs with text nodes.
+The text, code, and math inline types are leaves with a text field and never children. All other
+inline formatting types use children. Table headers are arrays of inline arrays. Table rows are
+arrays of cells; a cell is either an inline array or an object with content (an inline array) and
+optional integer rowspan/colspan, for example:
+{"type":"table","headers":[[{"type":"text","text":"Name"}],[{"type":"text","text":"Value"}]],"rows":[[[{"type":"text","text":"A"}],[{"type":"text","text":"1"}]]]}
+Each list item is an object with content as an inline array and optional checked boolean. Figure
+src and alt are strings; figure caption is an inline array. Emit a link only when its URL is
+visible and non-empty; otherwise emit its label as ordinary text."""
 
 
 class VisionError(RuntimeError):
@@ -104,3 +127,53 @@ def transcribe_images(
             raise VisionError(f"vision provider returned an invalid response: {exc}") from exc
         time.sleep(0.5 * (2**attempt))
     raise AssertionError("retry loop exhausted without returning or raising")
+
+
+def transcribe_images_codex(
+    images: list[Path], *, model: str, context: str | None = None, timeout: float = 600
+) -> dict[str, Any]:
+    """Use an authenticated local Codex CLI as an explicit vision provider."""
+    executable = shutil.which("codex")
+    if not executable:
+        raise VisionError("codex executable was not found")
+    prompt = f"{SYSTEM_PROMPT}\n\nTranscribe the attached pages in order. Return JSON only."
+    if context:
+        prompt += f"\n\n{context}"
+    with tempfile.TemporaryDirectory(prefix="pdf-to-carve-codex-") as directory:
+        output = Path(directory) / "result.json"
+        command = [
+            executable,
+            "exec",
+            "--ephemeral",
+            "--ignore-user-config",
+            "--ignore-rules",
+            "--sandbox",
+            "read-only",
+            "--model",
+            model,
+        ]
+        for image in images:
+            command.extend(("--image", str(image.resolve())))
+        command.extend(("--output-last-message", str(output), "-"))
+        try:
+            completed = subprocess.run(
+                command,
+                input=prompt,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise VisionError(f"Codex CLI exceeded the {timeout:g}-second timeout") from exc
+        if completed.returncode or not output.is_file():
+            detail = (completed.stderr or completed.stdout).strip().splitlines()
+            message = detail[-1] if detail else "no response was written"
+            raise VisionError(f"Codex CLI failed: {message}")
+        try:
+            value = json.loads(output.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise VisionError(f"Codex CLI returned invalid JSON: {exc}") from exc
+        if not isinstance(value, dict):
+            raise VisionError("Codex CLI response must be a JSON object")
+        return value

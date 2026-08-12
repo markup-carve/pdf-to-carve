@@ -4,6 +4,8 @@ Text mode is local: it reads the PDF with PyMuPDF and makes no network request.
 Vision and hybrid modes send rendered pages to the configured API endpoint; hybrid
 also sends bounded extracted text and coordinates. Check the provider's retention,
 training, regional-processing, and access policies before using sensitive material.
+The optional `codex-cli` provider also sends these inputs to the Codex service using
+the CLI's existing authentication; “CLI” does not mean offline or local inference.
 
 Document content is untrusted data. The provider instruction explicitly forbids
 following instructions found inside a document, the returned JSON is strictly

@@ -22,6 +22,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--start-page", type=int, default=1)
     parser.add_argument("--end-page", type=int)
     parser.add_argument("--model", default="gpt-4o-mini")
+    parser.add_argument(
+        "--provider", choices=("openai", "codex-cli"), default="openai", help="vision provider"
+    )
     parser.add_argument("--api-key", help="API key; prefer OPENAI_API_KEY")
     parser.add_argument("--base-url", default="https://api.openai.com/v1")
     parser.add_argument("--text-threshold", type=float, default=80.0)
@@ -61,6 +64,7 @@ def main(argv: list[str] | None = None) -> int:
                     use_cache=not args.no_cache,
                     assets_dir=args.assets_dir,
                     max_input_mb=args.max_input_mb,
+                    provider=args.provider,
                 ),
             )
         if args.save_json:

@@ -16,7 +16,7 @@ from .extract import extract_text_pdf, text_coverage
 from .layout import evidence_prompt, extract_embedded_images, positioned_text
 from .model import Document
 from .serialize import to_carve
-from .vision import SYSTEM_PROMPT, transcribe_images
+from .vision import SYSTEM_PROMPT, transcribe_images, transcribe_images_codex
 
 
 @dataclass(frozen=True)
@@ -36,6 +36,7 @@ class ConversionOptions:
     use_cache: bool = True
     assets_dir: Path | None = None
     max_input_mb: int = 100
+    provider: Literal["openai", "codex-cli"] = "openai"
 
 
 @dataclass(frozen=True)
@@ -136,22 +137,29 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
                 context = evidence_prompt(
                     positioned_text(path, options.start_page, options.end_page)
                 )
+                context += (
+                    "\nFor hybrid extraction, include exactly one provenance entry per block, "
+                    "using the best matching page and any defensible bbox/confidence/warnings."
+                )
             cache = JsonCache(options.cache_dir) if options.cache_dir else None
             key = cache_key(
                 files=images,
-                model=options.model,
+                model=f"{options.provider}:{options.model}",
                 prompt=f"{SYSTEM_PROMPT}\n{context or ''}",
             )
             raw = cache.get(key) if cache and options.use_cache else None
             if raw is None:
-                raw = transcribe_images(
-                    images,
-                    model=options.model,
-                    api_key=options.api_key,
-                    base_url=options.base_url,
-                    retries=options.retries,
-                    context=context,
-                )
+                if options.provider == "codex-cli":
+                    raw = transcribe_images_codex(images, model=options.model, context=context)
+                else:
+                    raw = transcribe_images(
+                        images,
+                        model=options.model,
+                        api_key=options.api_key,
+                        base_url=options.base_url,
+                        retries=options.retries,
+                        context=context,
+                    )
                 if cache and options.use_cache:
                     cache.put(key, raw)
     if options.assets_dir and is_pdf:

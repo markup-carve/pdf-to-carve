@@ -45,12 +45,13 @@ def _objects(page: pdfium.PdfPage) -> list[dict[str, Any]]:
             previous = rows[-1]
             old = previous["bbox"]
             new = item["bbox"]
-            same_line = abs((old[1] + old[3]) / 2 - (new[1] + new[3]) / 2) <= max(
-                previous["size"], item["size"]
-            ) * 0.45
-            forward = new[0] >= old[0] and new[0] - old[2] < max(
-                previous["size"], item["size"]
-            ) * 1.5
+            same_line = (
+                abs((old[1] + old[3]) / 2 - (new[1] + new[3]) / 2)
+                <= max(previous["size"], item["size"]) * 0.45
+            )
+            forward = (
+                new[0] >= old[0] and new[0] - old[2] < max(previous["size"], item["size"]) * 1.5
+            )
             if not same_line or not forward:
                 item["text"] = item["text"].strip()
                 rows.append(item)

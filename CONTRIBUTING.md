@@ -12,17 +12,30 @@ without credentials or network access.
 ## Releasing
 
 Releases are published to PyPI by `.github/workflows/release.yml`, which runs on
-a pushed `v*` tag and uploads through Trusted Publishing - no API token is
-stored in the repository.
+a pushed `v*` tag. The publish job prefers a `PYPI_API_TOKEN` secret when one is
+set and otherwise uploads through Trusted Publishing, which stores no
+credential at all.
 
-One-time setup, both maintainer actions outside this repository's files:
+One-time setup, all of it outside this repository's files:
 
-1. On PyPI, add a *pending* publisher for the project name `pdf-to-carve`:
-   owner `markup-carve`, repository `pdf-to-carve`, workflow `release.yml`,
-   environment `pypi`.
-2. In the repository settings, create an environment named `pypi`. The publish
+1. In the repository settings, create an environment named `pypi`. The publish
    job is bound to it, so restricting who may approve it also restricts who may
    release.
+2. Give the first release a credential, either way round:
+   - **Trusted Publishing, no secret.** On PyPI, add a *pending* publisher for
+     the project name `pdf-to-carve`: owner `markup-carve`, repository
+     `pdf-to-carve`, workflow `release.yml`, environment `pypi`. PyPI supports
+     pending publishers precisely so a name that does not exist yet can be
+     claimed this way.
+   - **API token.** Set `PYPI_API_TOKEN` as a repository secret. A token for a
+     project that does not exist yet has to be account-scoped, because
+     project-scoped tokens cannot be minted before the project does. Treat that
+     as a bootstrap credential: after the first upload, add a trusted publisher
+     on the now-existing PyPI project and `gh secret delete PYPI_API_TOKEN`, so
+     the broad credential stops living in the repository.
+
+Trusted Publishing needs no token in either case; the token path exists only so
+a first publish is not blocked on PyPI-side configuration.
 
 Per release:
 

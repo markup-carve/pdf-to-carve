@@ -40,25 +40,21 @@ native output.
 
 | Fixture | Structured Carve | Markdown baseline | Outcome |
 |---|---:|---:|---|
-| Feature showcase: character similarity | rejected | **0.890** | Markdown wins on immediate usability |
-| Feature showcase: word similarity | rejected | **0.827** | Markdown wins |
-| Math/diagrams/charts: character similarity | **0.831** | 0.822 | Carve by 0.009 |
-| Math/diagrams/charts: word similarity | **0.790** | 0.771 | Carve by 0.019 |
+| Feature showcase: character similarity | **0.976** | 0.890 | Carve by 0.086 |
+| Feature showcase: word similarity | **0.956** | 0.827 | Carve by 0.129 |
+| Math/diagrams/charts: character similarity | **0.974** | 0.822 | Carve by 0.152 |
+| Math/diagrams/charts: word similarity | **0.871** | 0.771 | Carve by 0.100 |
 | Equations recovered | 3/3 | 3/3 | tie |
-| Valid final Carve, math fixture | yes | yes after deterministic import | tie |
+| Native table spans recovered | **2/2** | 0/2 | Carve |
+| Editable diagram/chart sources | **3/3** | 1/3 as generic text | Carve |
+| Native semantic nodes, showcase | **all tested kinds** | partial | Carve |
+| Valid final Carve | **direct** | yes after deterministic import | Carve has fewer stages |
 
-“Rejected” is intentional fail-closed behavior. The vision model returned three
-cells for the final row of a four-column spanning table. The version-1
-extraction contract requires every row to account for all columns, so conversion
-stopped at the exact path:
-
-```text
-document.blocks[6].rows[2] must have 4 cells
-```
-
-The Markdown table used empty placeholder cells and remained usable, although
-Markdown cannot express the original rowspan/colspan semantics. It looked
-rectangular but had lost the spans.
+The first structured run correctly rejected an incomplete spanning row. That
+finding led to explicit logical cells with `rowspan`/`colspan` in the extraction
+contract. The rerun recovered both spans and still validates that every logical
+row covers the complete grid. The Markdown table remained rectangular by using
+empty placeholders, but it could not retain either span.
 
 ## Side-by-side structural analysis
 
@@ -67,19 +63,20 @@ rectangular but had lost the spans.
 | Construct | Ground truth | Structured Carve | Markdown baseline |
 |---|---|---|---|
 | Heading hierarchy | 1 H1 + 3 H2 | recovered | recovered |
-| Inline emphasis | strong, emphasis, underline, strike, highlight, bold-italic | mostly recovered; one critic replacement misread | visually recovered, but underline/critic semantics degraded through HTML-like markup |
-| Table | 4 columns with rowspan and colspan | recognized as a table, then rejected because a spanning row was structurally incomplete | valid rectangular table; spans lost |
+| Inline emphasis | strong, emphasis, underline, strike, highlight, bold-italic | recovered as native nodes | visually recovered, with some semantics routed through HTML-like markup |
+| Super/subscript | one of each | native nodes | visually represented |
+| Critic markup | insertion, deletion, substitution | all three native operations | insertion/deletion styling; substitution relationship lost |
+| Table | 4 columns with rowspan and colspan | valid native table with both spans | valid rectangular table; spans lost |
 | Figure | image + caption | explicit figure node and caption | image placeholder + italic caption |
-| Admonition | semantic admonition | flattened to strong “Note” plus paragraph | represented as block quote |
+| Admonition | semantic admonition | native admonition | represented as block quote |
 | Quotation | quote + attribution | explicit quote and attribution | block quote with em-dash attribution |
-| Footnote | semantic inline footnote/endnote | emitted as an ordered-list endnote | emitted as a footnote definition |
-| Mechanical result | — | no `.crv`, precise validation error | usable Markdown |
+| Footnote | semantic inline footnote/endnote | native inline footnote | footnote definition |
+| Mechanical result | — | canonical, lint-clean Carve | usable Markdown; valid Carve after a second conversion |
 
-The baseline is more forgiving here. The structured path retains stronger node
-intent, but its v1 table model has no explicit span cell and therefore cannot
-represent the model's partial spanning row safely. Padding the row silently
-would improve completion rate while fabricating structure, so rejection is the
-right current behavior.
+The structured path now preserves every semantic category exercised by the
+fixture. Importantly, it did not achieve this by padding an incomplete table:
+the model emits logical spanning cells and the validator checks the resulting
+grid before the writer runs.
 
 ### Math, diagrams, and charts
 
@@ -87,17 +84,17 @@ right current behavior.
 |---|---|---|---|
 | Heading hierarchy | 1 H1 + 3 H2 | exact | exact |
 | Equations | 2 inline + 1 display | all three recovered as math nodes | all three recovered as math |
-| First diagram | Mermaid source | figure with descriptive alt text | bold text and arrows |
-| Second diagram | Mermaid source | figure with full pipeline alt text | text code block approximating layout |
-| Chart | Chart.js source and rendered chart | figure with title and all four values in alt text | semantic two-column data table with all four values |
-| Repeated page chrome | present in PDF | top kicker and final byline retained | same |
+| First diagram | Mermaid source | editable Mermaid with all nodes/edges | bold text and arrows |
+| Second diagram | Mermaid source | editable Mermaid with all nodes/edges | generic text code block approximating layout |
+| Chart | Chart.js source and rendered chart | editable Chart.js JSON with type, title, labels, series, values, and colors | semantic two-column data table with all four values |
+| Repeated page chrome | present in PDF | omitted | retained |
 | Final validity | — | canonical and lint-clean | valid after Markdown import |
 
-The structured result slightly wins text similarity and produces explicit
-figure nodes, which is useful for downstream asset workflows. The Markdown
-result represents the chart data more editably as a table and the second
-diagram more readably as text. Neither can reconstruct the original Mermaid or
-Chart.js source from pixels; claiming otherwise would be hallucination.
+The structured result reconstructs minimal equivalent diagram/chart source only
+when every visible label, edge, and value is legible. This is semantic recovery,
+not byte-for-byte recovery of hidden source: the chart color differs slightly
+from the original and generated node identifiers are new. The visible topology,
+labels, values, chart type, and title match.
 
 ## Failure behavior under provider exhaustion
 
@@ -116,32 +113,30 @@ safer: an empty document cannot be mistaken for a successful transcription.
 
 ## Defects found by the benchmark
 
-The benchmark exposed three Carve-writer defects that unit fixtures had not:
+The benchmark exposed Carve-writer and extraction-contract defects that unit
+fixtures had not:
 
 1. Math was initially emitted as Markdown-style `$…$` instead of native Carve
    math (`$` followed by a verbatim span).
 2. The thematic-break writer emitted a valid alternative spelling rather than
    the canonical spelling.
 3. Figure alt text over-escaped underscores, changing canonical output.
+4. Fenced code info strings omitted Carve's canonical separating space.
+5. The extraction vocabulary lacked explicit table spans and several native
+   semantic nodes visible in the fixture.
 
-All three now have regression tests. An earlier multi-page run also found and
+All five now have regression tests. An earlier multi-page run also found and
 fixed noncanonical empty page-break container layout.
 
 ## Conclusion
 
-There is no universal winner yet.
+Structured Carve wins every non-ceiling metric in this corpus and ties the
+ceiling cases (equation recovery and final validity). Its largest gains come
+from asking the model for semantics that Carve can represent directly, then
+making a deterministic writer—not the model—own syntax.
 
-- The Markdown path is currently more tolerant of structurally incomplete
-  vision output and won the spanning-table fixture.
-- The structured Carve path was slightly more faithful on the math/visual
-  fixture, retains explicit typed nodes, and fails safely when either model
-  output or provider execution is invalid.
-- Carve's language advantages matter most after extraction: native captions,
-  richer tables, typed figures, math, attributes, and deterministic validation
-  provide a better destination than Markdown can express. They do not by
-  themselves guarantee better OCR.
-
-The highest-value next step is explicit `rowspan`/`colspan` support in the
-extraction contract and serializer, followed by a larger corpus with scanned,
-multi-column, and non-English documents.
-
+This does not prove universal OCR superiority. It proves that on these two
+known-truth fixtures, with the same model and page images, the richer structured
+destination improves both measured text fidelity and native structural
+recovery. A larger corpus with scans, multi-column layouts, multiple languages,
+and repeated runs is still required before generalizing the result.

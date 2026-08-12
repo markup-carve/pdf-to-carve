@@ -7,6 +7,9 @@ The conversion does **not** pass through Markdown and does not ask an AI model
 to write Carve syntax. Extraction produces a small, validated JSON document;
 a deterministic writer produces Carve.
 
+See [Why Carve over Markdown?](docs/why-carve-over-markdown.md) and the
+[equal-model complex-PDF benchmark](docs/vision-benchmark-2026-08.md).
+
 ```text
 PDF/image -> text extraction or vision model -> document JSON -> Carve writer
                                                            -> carve fmt/lint
@@ -81,8 +84,9 @@ Complex born-digital tables can still benefit from explicitly selecting
 ## Extraction model
 
 The version-1 model accepts headings, paragraphs, flat lists, code blocks,
-quotes, tables, figures, thematic breaks, and page breaks. Inline content can
-represent text, strong/emphasis/underline/strike, code, math, and links.
+quotes, admonitions, spanning tables, figures, thematic breaks, and page breaks.
+Inline content can represent text, common decoration, super/subscript, critic
+markup, inline footnotes, code, math, and links.
 Unknown fields and malformed nodes fail closed with a precise JSON path.
 The machine-readable contract is
 [`document-v1.schema.json`](src/pdf_to_carve/document-v1.schema.json).

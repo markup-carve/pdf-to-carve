@@ -36,11 +36,28 @@ def _inline(nodes: tuple[Inline, ...], *, table: bool = False) -> str:
             value = f"${_code_span(node.text)}"
         elif node.type == "link":
             url = node.url.replace("\\", "%5C").replace(")", "%29") if node.url else ""
-            value = f"[{_inline(node.children)}]({url})"
+            value = f"[{_inline(node.children, table=table)}]({url})"
+        elif node.type == "substitute":
+            value = (
+                f"{{~{_inline(node.children, table=table)}"
+                f"~>{_inline(node.replacement, table=table)}~}}"
+            )
+        elif node.type == "footnote":
+            value = f"^[{_inline(node.children, table=table)}]"
         else:
-            marks = {"strong": "*", "emphasis": "/", "underline": "_", "strike": "~"}
-            mark = marks[node.type]
-            value = f"{mark}{_inline(node.children)}{mark}"
+            marks = {
+                "strong": ("*", "*"),
+                "emphasis": ("/", "/"),
+                "underline": ("_", "_"),
+                "strike": ("~", "~"),
+                "highlight": ("=", "="),
+                "superscript": ("{^", "^}"),
+                "subscript": ("{,", ",}"),
+                "insert": ("{+", "+}"),
+                "delete": ("{-", "-}"),
+            }
+            opening, closing = marks[node.type]
+            value = f"{opening}{_inline(node.children, table=table)}{closing}"
         out.append(value)
     return "".join(out)
 
@@ -48,6 +65,30 @@ def _inline(nodes: tuple[Inline, ...], *, table: bool = False) -> str:
 def _code_span(text: str) -> str:
     ticks = "`" * (max((len(m.group()) for m in re.finditer(r"`+", text)), default=0) + 1)
     return f"{ticks}{text}{ticks}"
+
+
+def _table_rows(rows: list[list[dict[str, object]]], width: int) -> list[str]:
+    occupied = [0] * width
+    rendered_rows = []
+    for row in rows:
+        active = [remaining > 0 for remaining in occupied]
+        cells = ["^" if column else "" for column in active]
+        cursor = 0
+        for cell in row:
+            while active[cursor]:
+                cursor += 1
+            colspan = int(cell["colspan"])
+            rowspan = int(cell["rowspan"])
+            cells[cursor] = _inline(cell["content"], table=True)  # type: ignore[arg-type]
+            for column in range(cursor, cursor + colspan):
+                active[column] = True
+                occupied[column] = max(occupied[column], rowspan)
+                if column > cursor:
+                    cells[column] = "<"
+            cursor += colspan
+        rendered_rows.append("| " + " | ".join(cells) + " |")
+        occupied = [max(0, remaining - 1) for remaining in occupied]
+    return rendered_rows
 
 
 def _frontmatter(doc: Document) -> str:
@@ -82,7 +123,8 @@ def _block(block: Block) -> str:
         text = d["text"].rstrip("\n")
         longest = max((len(m.group()) for m in re.finditer(r"`+", text)), default=0)
         fence = "`" * max(3, longest + 1)
-        return f"{fence}{d.get('language', '')}\n{text}\n{fence}"
+        info = f" {d['language']}" if d.get("language") else ""
+        return f"{fence}{info}\n{text}\n{fence}"
     if block.type == "quote":
         lines = "\n".join(
             f"> {line}" if line else ">" for line in _inline(d["content"]).splitlines()
@@ -92,9 +134,7 @@ def _block(block: Block) -> str:
         return lines
     if block.type == "table":
         rows = ["|=" + "|=".join(_inline(cell, table=True) for cell in d["headers"]) + "|"]
-        rows.extend(
-            "| " + " | ".join(_inline(cell, table=True) for cell in row) + " |" for row in d["rows"]
-        )
+        rows.extend(_table_rows(d["rows"], len(d["headers"])))
         if "caption" in d:
             rows.append(f"^ {_inline(d['caption'])}")
         return "\n".join(rows)
@@ -107,6 +147,9 @@ def _block(block: Block) -> str:
         if "caption" in d:
             result += f"\n^ {_inline(d['caption'])}"
         return result
+    if block.type == "admonition":
+        title = f"*{_inline(d['title'])}*\n\n" if "title" in d else ""
+        return f"::: {d['kind']}\n{title}{_inline(d['content'])}\n:::"
     if block.type == "thematic_break":
         return "---"
     if block.type == "page_break":

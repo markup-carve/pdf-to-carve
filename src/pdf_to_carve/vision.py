@@ -17,9 +17,17 @@ Return one JSON object only. Never return Markdown or Carve. Preserve wording an
 summarize or invent content. Use schema version 1 with blocks. Supported blocks: heading(level
 1-6, content), paragraph(content), list(ordered, start, items), code_block(text, language),
 quote(content, attribution), table(headers, rows, caption), figure(src, alt, caption, id),
-thematic_break, page_break. Inline arrays support text, strong, emphasis, underline, strike,
-code, math, and link(children,url). Omit headers, footers, and page numbers that repeat. Join
-paragraphs split across page boundaries. Use figure src placeholders exactly as
+admonition(kind, title, content), thematic_break, page_break. Inline arrays support text, strong,
+emphasis, underline, strike, highlight, superscript, subscript, insert, delete,
+substitute(children,replacement), footnote(children), code, math, and link(children,url). Omit
+headers, footers, and page numbers that repeat. Associate printed endnotes with their reference
+as inline footnotes instead of duplicating them. Join
+paragraphs split across page boundaries. In tables, emit one logical cell per visible cell as
+an object with content and optional rowspan/colspan; spans must account for the full rectangular
+grid without empty placeholder cells. When every node, edge and label of a rendered diagram is
+legible, reconstruct a minimal equivalent code_block with language mermaid; otherwise use a
+figure. When chart labels and values are legible, reconstruct a valid Chart.js JSON code_block
+with language chart; otherwise use a figure. Use figure src placeholders exactly as
 assets/page-N-figure-M.png. Include uncertain visible text rather than guessing silently."""
 
 

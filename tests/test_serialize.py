@@ -29,7 +29,7 @@ def test_escapes_document_text_and_variable_code_fences() -> None:
     }
     source = to_carve(Document.from_json(raw))
     assert r"literal \* \/ \_ \~ \[ \%" in source
-    assert "````txt\ncontains ``` inside\n````" in source
+    assert "```` txt\ncontains ``` inside\n````" in source
 
 
 def test_page_break_uses_canonical_nonempty_container_layout() -> None:
@@ -58,3 +58,88 @@ def test_figure_alt_keeps_plain_underscores_and_escapes_brackets() -> None:
         }
     )
     assert to_carve(document) == r"![print_cdp.py \[diagram\]](image.png)" + "\n"
+
+
+def test_table_spans_emit_native_carve_placeholders() -> None:
+    def cell(text: str) -> list[dict[str, str]]:
+        return [{"type": "text", "text": text}]
+
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {
+                    "type": "table",
+                    "headers": [cell("Region"), cell("Q1"), cell("Q2"), cell("Q3")],
+                    "rows": [
+                        [cell("EMEA"), cell("12"), cell("15"), cell("19")],
+                        [
+                            {"content": cell("APAC"), "rowspan": 2},
+                            cell("8"),
+                            cell("11"),
+                            cell("22"),
+                        ],
+                        [{"content": cell("20"), "colspan": 2}, cell("25")],
+                    ],
+                }
+            ],
+        }
+    )
+    assert to_carve(document) == (
+        "|=Region|=Q1|=Q2|=Q3|\n"
+        "| EMEA | 12 | 15 | 19 |\n"
+        "| APAC | 8 | 11 | 22 |\n"
+        "| ^ | 20 | < | 25 |\n"
+    )
+
+
+def test_serializes_native_semantic_nodes() -> None:
+    def text(value: str) -> list[dict[str, str]]:
+        return [{"type": "text", "text": value}]
+
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {"type": "highlight", "children": text("key")},
+                        {"type": "superscript", "children": text("2")},
+                        {"type": "subscript", "children": text("n")},
+                        {"type": "insert", "children": text("add")},
+                        {"type": "delete", "children": text("drop")},
+                        {"type": "substitute", "children": text("old"), "replacement": text("new")},
+                        {"type": "footnote", "children": text("note")},
+                    ],
+                },
+                {
+                    "type": "admonition",
+                    "kind": "note",
+                    "title": text("Remember"),
+                    "content": text("Read this."),
+                },
+            ],
+        }
+    )
+    assert to_carve(document) == (
+        "=key={^2^}{,n,}{+add+}{-drop-}{~old~>new~}^[note]\n\n"
+        "::: note\n*Remember*\n\nRead this.\n:::\n"
+    )
+
+
+def test_table_escapes_pipes_inside_nested_inline_nodes() -> None:
+    text = [{"type": "text", "text": "a|b"}]
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {
+                    "type": "table",
+                    "headers": [text],
+                    "rows": [[[{"type": "strong", "children": text}]]],
+                }
+            ],
+        }
+    )
+    assert to_carve(document) == "|=a\\|b|\n| *a\\|b* |\n"

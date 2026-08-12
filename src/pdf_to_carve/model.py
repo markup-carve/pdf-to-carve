@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -10,7 +11,23 @@ class DocumentError(ValueError):
     """Raised when extracted document JSON does not match the contract."""
 
 
-INLINE_TYPES = {"text", "strong", "emphasis", "underline", "strike", "code", "math", "link"}
+INLINE_TYPES = {
+    "text",
+    "strong",
+    "emphasis",
+    "underline",
+    "strike",
+    "highlight",
+    "superscript",
+    "subscript",
+    "insert",
+    "delete",
+    "substitute",
+    "footnote",
+    "code",
+    "math",
+    "link",
+}
 BLOCK_TYPES = {
     "heading",
     "paragraph",
@@ -19,6 +36,7 @@ BLOCK_TYPES = {
     "quote",
     "table",
     "figure",
+    "admonition",
     "thematic_break",
     "page_break",
 }
@@ -37,6 +55,13 @@ def _string(value: Any, path: str, *, empty: bool = True) -> str:
     return value
 
 
+def _name(value: Any, path: str) -> str:
+    name = _string(value, path, empty=False)
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", name):
+        raise DocumentError(f"{path} must be a portable name")
+    return name
+
+
 def _keys(value: dict[str, Any], allowed: set[str], path: str) -> None:
     extra = sorted(set(value) - allowed)
     if extra:
@@ -49,6 +74,7 @@ class Inline:
     text: str = ""
     children: tuple[Inline, ...] = ()
     url: str | None = None
+    replacement: tuple[Inline, ...] = ()
 
     @classmethod
     def from_json(cls, value: Any, path: str) -> Inline:
@@ -59,25 +85,70 @@ class Inline:
         if kind in {"text", "code", "math"}:
             _keys(obj, {"type", "text"}, path)
             return cls(kind, text=_string(obj.get("text"), f"{path}.text"))
-        if kind == "link":
+        if kind == "substitute":
+            _keys(obj, {"type", "children", "replacement"}, path)
+            replacement = _inlines(obj.get("replacement"), f"{path}.replacement")
+            url = None
+        elif kind == "link":
             _keys(obj, {"type", "children", "url"}, path)
             url = _string(obj.get("url"), f"{path}.url", empty=False)
+            replacement = ()
         else:
             _keys(obj, {"type", "children"}, path)
             url = None
+            replacement = ()
         raw_children = obj.get("children")
         if not isinstance(raw_children, list) or not raw_children:
             raise DocumentError(f"{path}.children must be a non-empty array")
         children = tuple(
             cls.from_json(item, f"{path}.children[{i}]") for i, item in enumerate(raw_children)
         )
-        return cls(kind, children=children, url=url)
+        return cls(kind, children=children, url=url, replacement=replacement)
 
 
 def _inlines(value: Any, path: str) -> tuple[Inline, ...]:
     if not isinstance(value, list):
         raise DocumentError(f"{path} must be an array")
     return tuple(Inline.from_json(item, f"{path}[{i}]") for i, item in enumerate(value))
+
+
+def _table_cell(value: Any, path: str) -> dict[str, Any]:
+    if isinstance(value, list):
+        return {"content": _inlines(value, path), "rowspan": 1, "colspan": 1}
+    obj = _object(value, path)
+    _keys(obj, {"content", "rowspan", "colspan"}, path)
+    rowspan = obj.get("rowspan", 1)
+    colspan = obj.get("colspan", 1)
+    if not isinstance(rowspan, int) or isinstance(rowspan, bool) or rowspan < 1:
+        raise DocumentError(f"{path}.rowspan must be a positive integer")
+    if not isinstance(colspan, int) or isinstance(colspan, bool) or colspan < 1:
+        raise DocumentError(f"{path}.colspan must be a positive integer")
+    return {
+        "content": _inlines(obj.get("content"), f"{path}.content"),
+        "rowspan": rowspan,
+        "colspan": colspan,
+    }
+
+
+def _validate_table_grid(rows: list[list[dict[str, Any]]], width: int, path: str) -> None:
+    occupied = [0] * width
+    for y, row in enumerate(rows):
+        active = [remaining > 0 for remaining in occupied]
+        cursor = 0
+        for x, cell in enumerate(row):
+            while cursor < width and active[cursor]:
+                cursor += 1
+            end = cursor + cell["colspan"]
+            if end > width or any(active[cursor:end]):
+                raise DocumentError(f"{path}[{y}][{x}] does not fit the {width}-column grid")
+            for column in range(cursor, end):
+                active[column] = True
+                occupied[column] = max(occupied[column], cell["rowspan"])
+            cursor = end
+        if not all(active):
+            missing = sum(not column for column in active)
+            raise DocumentError(f"{path}[{y}] leaves {missing} grid column(s) unaccounted for")
+        occupied = [max(0, remaining - 1) for remaining in occupied]
 
 
 @dataclass(frozen=True)
@@ -152,13 +223,14 @@ class Block:
             parsed_headers = [
                 _inlines(cell, f"{path}.headers[{i}]") for i, cell in enumerate(headers)
             ]
-            parsed_rows = []
+            parsed_rows: list[list[dict[str, Any]]] = []
             for y, row in enumerate(rows):
-                if not isinstance(row, list) or len(row) != len(headers):
-                    raise DocumentError(f"{path}.rows[{y}] must have {len(headers)} cells")
+                if not isinstance(row, list):
+                    raise DocumentError(f"{path}.rows[{y}] must be an array")
                 parsed_rows.append(
-                    [_inlines(cell, f"{path}.rows[{y}][{x}]") for x, cell in enumerate(row)]
+                    [_table_cell(cell, f"{path}.rows[{y}][{x}]") for x, cell in enumerate(row)]
                 )
+            _validate_table_grid(parsed_rows, len(headers), f"{path}.rows")
             data = {"headers": parsed_headers, "rows": parsed_rows}
             if "caption" in obj:
                 data["caption"] = _inlines(obj["caption"], f"{path}.caption")
@@ -172,6 +244,14 @@ class Block:
                 data["caption"] = _inlines(obj["caption"], f"{path}.caption")
             if "id" in obj:
                 data["id"] = _string(obj["id"], f"{path}.id", empty=False)
+        elif kind == "admonition":
+            _keys(obj, {"type", "kind", "content", "title"}, path)
+            data = {
+                "kind": _name(obj.get("kind"), f"{path}.kind"),
+                "content": _inlines(obj.get("content"), f"{path}.content"),
+            }
+            if "title" in obj:
+                data["title"] = _inlines(obj["title"], f"{path}.title")
         else:
             _keys(obj, {"type"}, path)
             data = {}
@@ -217,6 +297,8 @@ def document_to_json(document: Document) -> dict[str, Any]:
             result["children"] = [inline(child) for child in node.children]
             if node.type == "link":
                 result["url"] = node.url
+            if node.type == "substitute":
+                result["replacement"] = [inline(child) for child in node.replacement]
         return result
 
     def value(item: Any) -> Any:
@@ -239,6 +321,22 @@ def document_to_json(document: Document) -> dict[str, Any]:
         rendered = {"type": block.type, **value(block.data)}
         if block.type == "list" and rendered.get("start") == 1:
             rendered.pop("start")
+        if block.type == "table":
+            rendered["rows"] = []
+            for row in block.data["rows"]:
+                cells = []
+                for cell in row:
+                    content = value(cell["content"])
+                    if cell["rowspan"] == 1 and cell["colspan"] == 1:
+                        cells.append(content)
+                    else:
+                        entry = {"content": content}
+                        if cell["rowspan"] != 1:
+                            entry["rowspan"] = cell["rowspan"]
+                        if cell["colspan"] != 1:
+                            entry["colspan"] = cell["colspan"]
+                        cells.append(entry)
+                rendered["rows"].append(cells)
         rendered_blocks.append(rendered)
     result["blocks"] = rendered_blocks
     return result

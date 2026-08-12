@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/markup-carve/pdf-to-carve/raw/main/src/pdf_to_carve/document-v1.schema.json",
+  "title": "pdf-to-carve extraction document v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "blocks"],
+  "properties": {
+    "version": {"const": 1},
+    "title": {"type": "string", "minLength": 1},
+    "author": {"type": "string", "minLength": 1},
+    "language": {"type": "string", "minLength": 1},
+    "blocks": {"type": "array", "items": {"$ref": "#/$defs/block"}}
+  },
+  "$defs": {
+    "inlines": {"type": "array", "items": {"$ref": "#/$defs/inline"}},
+    "inline": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "text"],
+          "properties": {
+            "type": {"enum": ["text", "code", "math"]},
+            "text": {"type": "string"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "children"],
+          "properties": {
+            "type": {"enum": ["strong", "emphasis", "underline", "strike"]},
+            "children": {"$ref": "#/$defs/inlines", "minItems": 1}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "children", "url"],
+          "properties": {
+            "type": {"const": "link"},
+            "children": {"$ref": "#/$defs/inlines", "minItems": 1},
+            "url": {"type": "string", "minLength": 1}
+          }
+        }
+      ]
+    },
+    "listItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content"],
+      "properties": {
+        "content": {"$ref": "#/$defs/inlines"},
+        "checked": {"type": "boolean"}
+      }
+    },
+    "block": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "level", "content"],
+          "properties": {
+            "type": {"const": "heading"},
+            "level": {"type": "integer", "minimum": 1, "maximum": 6},
+            "content": {"$ref": "#/$defs/inlines"},
+            "id": {"type": "string", "minLength": 1}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "content"],
+          "properties": {
+            "type": {"const": "paragraph"},
+            "content": {"$ref": "#/$defs/inlines"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "items"],
+          "properties": {
+            "type": {"const": "list"},
+            "ordered": {"type": "boolean"},
+            "start": {"type": "integer", "minimum": 1},
+            "items": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/listItem"}}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "text"],
+          "properties": {
+            "type": {"const": "code_block"},
+            "text": {"type": "string"},
+            "language": {"type": "string"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "content"],
+          "properties": {
+            "type": {"const": "quote"},
+            "content": {"$ref": "#/$defs/inlines"},
+            "attribution": {"$ref": "#/$defs/inlines"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "headers", "rows"],
+          "properties": {
+            "type": {"const": "table"},
+            "headers": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/inlines"}},
+            "rows": {"type": "array", "items": {"type": "array", "items": {"$ref": "#/$defs/inlines"}}},
+            "caption": {"$ref": "#/$defs/inlines"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "src"],
+          "properties": {
+            "type": {"const": "figure"},
+            "src": {"type": "string", "minLength": 1},
+            "alt": {"type": "string"},
+            "caption": {"$ref": "#/$defs/inlines"},
+            "id": {"type": "string", "minLength": 1}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": {"type": {"enum": ["thematic_break", "page_break"]}}
+        }
+      ]
+    }
+  }
+}

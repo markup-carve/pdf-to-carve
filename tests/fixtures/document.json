@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "title": "Example Document",
+  "author": "A. Writer",
+  "language": "en",
+  "blocks": [
+    {
+      "type": "heading",
+      "level": 1,
+      "content": [{"type": "text", "text": "Results & discussion"}],
+      "id": "results"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {"type": "text", "text": "The "},
+        {"type": "strong", "children": [{"type": "text", "text": "important"}]},
+        {"type": "text", "text": " result is "},
+        {"type": "math", "text": "x^2"},
+        {"type": "text", "text": "."}
+      ]
+    },
+    {
+      "type": "table",
+      "headers": [
+        [{"type": "text", "text": "Name"}],
+        [{"type": "text", "text": "Value"}]
+      ],
+      "rows": [[
+        [{"type": "text", "text": "alpha"}],
+        [{"type": "code", "text": "a|b"}]
+      ]],
+      "caption": [{"type": "text", "text": "Table #: Measurements"}]
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        {"content": [{"type": "text", "text": "first"}], "checked": false},
+        {"content": [{"type": "text", "text": "done"}], "checked": true}
+      ]
+    },
+    {
+      "type": "figure",
+      "src": "assets/page-1-figure-1.png",
+      "alt": "Architecture",
+      "id": "architecture",
+      "caption": [{"type": "text", "text": "Figure #: Architecture"}]
+    }
+  ]
+}

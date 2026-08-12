@@ -30,3 +30,8 @@ def test_escapes_document_text_and_variable_code_fences() -> None:
     source = to_carve(Document.from_json(raw))
     assert r"literal \* \/ \_ \~ \[ \%" in source
     assert "````txt\ncontains ``` inside\n````" in source
+
+
+def test_page_break_uses_canonical_nonempty_container_layout() -> None:
+    source = to_carve(Document.from_json({"version": 1, "blocks": [{"type": "page_break"}]}))
+    assert source == "::: page-break\n\n:::\n"

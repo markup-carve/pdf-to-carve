@@ -53,6 +53,7 @@ include = [
   "/CHANGELOG.md",
   "/pyproject.toml",
 ]
+exclude = ["/tests/test_competitor_benchmark.py"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"

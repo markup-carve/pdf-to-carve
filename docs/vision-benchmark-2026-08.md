@@ -140,3 +140,13 @@ known-truth fixtures, with the same model and page images, the richer structured
 destination improves both measured text fidelity and native structural
 recovery. A larger corpus with scans, multi-column layouts, multiple languages,
 and repeated runs is still required before generalizing the result.
+
+## Broader extractor comparison
+
+The equal-model experiment above isolates destination-format effects. A separate
+[reproducible competitor benchmark](../benchmarks/competitors/REPORT.md) compares
+the complete Carve pipeline with deterministic and AI-assisted PDF extractors.
+It publishes raw normalized outputs, parsed ASTs, exact versions, timings,
+completion failures, fixture hashes, and the scorer. Keep the two experiments
+distinct: the broader comparison does not hold models or internal extraction
+strategies constant.

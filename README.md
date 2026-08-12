@@ -12,6 +12,11 @@ See [Why Carve over Markdown?](docs/why-carve-over-markdown.md) and the
 [conversion examples](examples/README.md) provide small before-and-after PDFs,
 validated JSON, Carve, and Markdown for direct inspection.
 
+For the broader extractor comparison, see the
+[reproducible competitor benchmark](benchmarks/competitors/REPORT.md), including
+raw normalized outputs, pinned versions, completion failures, scoring code, and
+methodological limitations.
+
 ```text
 PDF/image -> text, vision, or hybrid extraction -> document JSON -> Carve writer
                                                                -> carve fmt/lint

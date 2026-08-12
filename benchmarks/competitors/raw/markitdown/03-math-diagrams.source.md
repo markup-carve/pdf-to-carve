@@ -1,0 +1,87 @@
+C A R V E - P D F   ·   C L I E N T- S I D E   R E N D E R E R S
+
+Math, Diagrams and Charts
+
+Math and diagram fences are rendered in the browser, at print time: KaTeX typesets the math, Mermaid draws the
+
+diagrams, Chart.js paints the charts. All three settle under one  window.__carveReady  promise that  print_cdp.py
+
+awaits, so nothing is half-drawn when the page is captured. Without the corresponding library installed, each construct
+
+degrades to its readable source.
+
+Inline and display math
+
+The mass-energy relation
+
+E = mc2
+
+ appears inline in a sentence, while the Gaussian integral is shown as a centered
+
+display equation:
+
+∞
+
+∫−∞
+
+−x2
+
+  e
+
+dx =
+
+ π
+
+Another inline example: the quadratic roots
+
+x = (−b ±
+
+2
+b − 4ac
+
+ )/2a
+
+.
+
+Diagrams
+
+A flowchart, rendered to inline SVG by Mermaid:
+
+Parse
+
+AST
+
+Render
+
+PDF
+
+A second one, showing how the backends feed the same pipeline:
+
+Page 1 of 3
+
+carve source
+
+render.php
+
+render.mjs
+
+HTML fragment
+
+wrap.py
+
+print_cdp.py
+
+PDF
+
+Charts
+
+A  chart  fence carries a Chart.js config as JSON, drawn to a  <canvas> :
+
+Page 2 of 3
+
+Point  CARVE_KATEX ,  CARVE_MERMAID  and  CARVE_CHART  at your installs, or let  crv2pdf  probe the usual locations.
+
+By Mark Scherer · 2026-07-20
+
+Page 3 of 3
+

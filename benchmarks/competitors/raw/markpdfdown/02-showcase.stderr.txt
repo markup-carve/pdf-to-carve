@@ -1,0 +1,7 @@
+INFO - Processing PDF from page 1 to page 1
+INFO - Generated 1 images
+INFO - Converting image: page_0001.jpg
+ERROR - API request failed (attempt 1/1): provider credit balance exhausted
+ERROR - Failed to convert image page_0001.jpg: provider credit balance exhausted
+INFO - Conversion completed successfully
+INFO - Conversion completed. Output saved to requested path

@@ -1,0 +1,581 @@
+{
+  "version": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "level": 1,
+      "content": [
+        {
+          "type": "text",
+          "text": "Feature Showcase"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "Every inline decoration: "
+        },
+        {
+          "type": "strong",
+          "children": [
+            {
+              "type": "text",
+              "text": "strong"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "emphasis",
+          "children": [
+            {
+              "type": "text",
+              "text": "emphasis"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "underline",
+          "children": [
+            {
+              "type": "text",
+              "text": "underline"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "strike",
+          "children": [
+            {
+              "type": "text",
+              "text": "strikethrough"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "highlight",
+          "children": [
+            {
+              "type": "text",
+              "text": "highlighted"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": " text, and "
+        },
+        {
+          "type": "strong",
+          "children": [
+            {
+              "type": "emphasis",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "bold italic"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ". A link with a footnote."
+        },
+        {
+          "type": "footnote",
+          "children": [
+            {
+              "type": "text",
+              "text": "Inline footnote content, rendered as an endnote."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "Superscript"
+        },
+        {
+          "type": "superscript",
+          "children": [
+            {
+              "type": "text",
+              "text": "note"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": " and subscript"
+        },
+        {
+          "type": "subscript",
+          "children": [
+            {
+              "type": "text",
+              "text": "index"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": " both render as decorations."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "An image resolves relative to the "
+        },
+        {
+          "type": "code",
+          "text": ".crv"
+        },
+        {
+          "type": "text",
+          "text": " file, via the injected "
+        },
+        {
+          "type": "code",
+          "text": "<base href>"
+        },
+        {
+          "type": "text",
+          "text": ":"
+        }
+      ]
+    },
+    {
+      "type": "figure",
+      "src": "assets/page-1-figure-1.png",
+      "alt": "Four colored circles labeled Light, Medium, Dark, and French",
+      "caption": [
+        {
+          "type": "text",
+          "text": "Figure 1: the four roast stages, lightest to darkest"
+        }
+      ],
+      "id": "figure-1"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Table with row and column spans"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "headers": [
+        [
+          {
+            "type": "text",
+            "text": "Region"
+          }
+        ],
+        [
+          {
+            "type": "text",
+            "text": "Q1"
+          }
+        ],
+        [
+          {
+            "type": "text",
+            "text": "Q2"
+          }
+        ],
+        [
+          {
+            "type": "text",
+            "text": "Q3"
+          }
+        ]
+      ],
+      "rows": [
+        [
+          [
+            {
+              "type": "text",
+              "text": "EMEA"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "12"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "15"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "19"
+            }
+          ]
+        ],
+        [
+          {
+            "content": [
+              {
+                "type": "text",
+                "text": "APAC"
+              }
+            ],
+            "rowspan": 2
+          },
+          [
+            {
+              "type": "text",
+              "text": "8"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "11"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "22"
+            }
+          ]
+        ],
+        [
+          {
+            "content": [
+              {
+                "type": "text",
+                "text": "20"
+              }
+            ],
+            "colspan": 2
+          },
+          [
+            {
+              "type": "text",
+              "text": "25"
+            }
+          ]
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "The "
+        },
+        {
+          "type": "code",
+          "text": "^"
+        },
+        {
+          "type": "text",
+          "text": " in the last row extends the “APAC” cell down two rows; the "
+        },
+        {
+          "type": "code",
+          "text": "<"
+        },
+        {
+          "type": "text",
+          "text": " merges into the cell on its left."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Critic markup"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "The quick "
+        },
+        {
+          "type": "insert",
+          "children": [
+            {
+              "type": "text",
+              "text": "brown"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": " fox "
+        },
+        {
+          "type": "delete",
+          "children": [
+            {
+              "type": "text",
+              "text": "lazy"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": " jumps over the "
+        },
+        {
+          "type": "substitute",
+          "children": [
+            {
+              "type": "text",
+              "text": "dog"
+            }
+          ],
+          "replacement": [
+            {
+              "type": "text",
+              "text": "log"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Admonition"
+        }
+      ]
+    },
+    {
+      "type": "admonition",
+      "kind": "note",
+      "content": [
+        {
+          "type": "text",
+          "text": "This is an admonition block - rendered as a tinted container."
+        }
+      ],
+      "title": [
+        {
+          "type": "text",
+          "text": "Note"
+        }
+      ]
+    },
+    {
+      "type": "quote",
+      "content": [
+        {
+          "type": "emphasis",
+          "children": [
+            {
+              "type": "text",
+              "text": "Plain text should render beautifully and stay readable at the source."
+            }
+          ]
+        }
+      ],
+      "attribution": [
+        {
+          "type": "text",
+          "text": "Design principle"
+        }
+      ]
+    }
+  ],
+  "provenance": [
+    {
+      "block": 0,
+      "page": 1,
+      "bbox": [
+        51.0,
+        86.6,
+        219.31,
+        108.38
+      ],
+      "confidence": 0.99
+    },
+    {
+      "block": 1,
+      "page": 1,
+      "bbox": [
+        51.0,
+        116.76,
+        521.48,
+        142.24
+      ],
+      "confidence": 0.99
+    },
+    {
+      "block": 2,
+      "page": 1,
+      "bbox": [
+        51.0,
+        152.77,
+        308.01,
+        166.81
+      ],
+      "confidence": 0.99
+    },
+    {
+      "block": 3,
+      "page": 1,
+      "bbox": [
+        51.0,
+        176.76,
+        366.7,
+        187.24
+      ],
+      "confidence": 0.99
+    },
+    {
+      "block": 4,
+      "page": 1,
+      "bbox": [
+        140.0,
+        197.0,
+        455.0,
+        286.08
+      ],
+      "confidence": 0.98
+    },
+    {
+      "block": 5,
+      "page": 1,
+      "bbox": [
+        51.0,
+        299.17,
+        289.94,
+        315.93
+      ],
+      "confidence": 0.99
+    },
+    {
+      "block": 6,
+      "page": 1,
+      "bbox": [
+        51.0,
+        323.0,
+        543.0,
+        426.0
+      ],
+      "confidence": 0.99
+    },
+    {
+      "block": 7,
+      "page": 1,
+      "bbox": [
+        51.0,
+        437.76,
+        468.65,
+        448.24
+      ],
+      "confidence": 0.99
+    },
+    {
+      "block": 8,
+      "page": 1,
+      "bbox": [
+        51.0,
+        459.67,
+        147.69,
+        476.43
+      ],
+      "confidence": 0.99
+    },
+    {
+      "block": 9,
+      "page": 1,
+      "bbox": [
+        51.0,
+        487.26,
+        251.65,
+        497.74
+      ],
+      "confidence": 0.98
+    },
+    {
+      "block": 10,
+      "page": 1,
+      "bbox": [
+        51.0,
+        508.42,
+        134.32,
+        525.18
+      ],
+      "confidence": 0.99
+    },
+    {
+      "block": 11,
+      "page": 1,
+      "bbox": [
+        51.0,
+        532.0,
+        543.0,
+        584.0
+      ],
+      "confidence": 0.99
+    },
+    {
+      "block": 12,
+      "page": 1,
+      "bbox": [
+        51.0,
+        594.0,
+        543.0,
+        652.0
+      ],
+      "confidence": 0.99
+    }
+  ]
+}

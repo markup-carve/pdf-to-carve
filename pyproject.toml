@@ -13,9 +13,16 @@ authors = [{ name = "markup-carve" }]
 keywords = ["carve", "pdf", "ocr", "document-conversion"]
 classifiers = [
   "Development Status :: 3 - Alpha",
-  "License :: OSI Approved :: MIT License",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: End Users/Desktop",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Text Processing :: Markup",
+  "Topic :: Utilities",
 ]
 dependencies = ["pypdfium2>=5.0,<6", "Pillow>=10,<13"]
 
@@ -29,6 +36,8 @@ pdf-to-carve = "pdf_to_carve.cli:main"
 [project.urls]
 Homepage = "https://github.com/markup-carve/pdf-to-carve"
 Repository = "https://github.com/markup-carve/pdf-to-carve"
+Documentation = "https://github.com/markup-carve/pdf-to-carve#readme"
+Changelog = "https://github.com/markup-carve/pdf-to-carve/blob/main/CHANGELOG.md"
 Issues = "https://github.com/markup-carve/pdf-to-carve/issues"
 
 [tool.hatch.build.targets.wheel]

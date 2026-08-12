@@ -49,6 +49,7 @@ Force a mode or select pages:
 pdf-to-carve document.pdf --mode text --start-page 2 --end-page 8
 OPENAI_API_KEY=... pdf-to-carve scan.pdf --mode vision --model gpt-4o-mini
 OPENAI_API_KEY=... pdf-to-carve complex.pdf --mode hybrid --cache-dir .cache/pdf-to-carve
+pdf-to-carve complex.pdf --mode hybrid --provider codex-cli --model gpt-5.6-sol
 pdf-to-carve page.png --mode vision -o page.crv
 ```
 
@@ -56,6 +57,12 @@ Hybrid mode sends both rendered pages and positioned text evidence. It is useful
 for complex born-digital PDFs where text extraction preserves spelling but loses
 layout. Vision requests are capped at 20 pages by default; use `--max-pages` and
 `--dpi` to tune the request explicitly.
+
+`--provider codex-cli` uses an existing authenticated Codex CLI installation
+when API billing is unavailable. It launches an ephemeral, read-only session,
+ignores repository rules and user configuration, validates the returned JSON
+locally, and otherwise uses the same hybrid pipeline. This is still a remote AI
+request—not local inference—and requires an image-capable Codex model.
 
 Use `--base-url` with an OpenAI-compatible Chat Completions endpoint. The
 configured model must accept image inputs and JSON-object response format.
@@ -91,7 +98,7 @@ pdf-to-carve document.pdf -o document.crv --carve-command carve
 
 AI is deliberately narrow and optional:
 
-- Text PDFs use PyMuPDF and make no network request.
+- Text PDFs use PDFium by default and make no network request.
 - Scans, images, and complex layouts use one document-level vision request.
 - Hybrid mode gives the model bounded positioned-text evidence alongside images.
 - The model returns JSON, never executable content or final Carve syntax.
@@ -129,6 +136,16 @@ escaping. The contract can evolve by adding a new version.
 - PDF content is untrusted input. Review converted documents before publishing.
 
 See [privacy and security](docs/privacy-security.md) before processing sensitive files.
+For distribution planning, see the
+[PDF backend licensing options](docs/dependency-licensing.md).
+
+The default PDFium backend is permissively licensed. Install the optional
+PyMuPDF compatibility backend when exact legacy behavior is required:
+
+```bash
+pip install 'pdf-to-carve[pymupdf]'
+pdf-to-carve document.pdf --pdf-backend pymupdf
+```
 
 ## Development
 

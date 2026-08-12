@@ -6,7 +6,15 @@ import statistics
 from pathlib import Path
 from typing import Any
 
-import pymupdf
+
+def _pymupdf() -> Any:
+    try:
+        import pymupdf
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "the PyMuPDF backend requires the optional 'pdf-to-carve[pymupdf]' extra"
+        ) from exc
+    return pymupdf
 
 
 def _text(value: str) -> list[dict[str, str]]:
@@ -15,6 +23,7 @@ def _text(value: str) -> list[dict[str, str]]:
 
 def extract_text_pdf(path: Path, start: int = 1, end: int | None = None) -> dict[str, Any]:
     """Extract a conservative document model from positioned PDF text."""
+    pymupdf = _pymupdf()
     doc = pymupdf.open(path)
     try:
         if not doc.page_count:
@@ -81,6 +90,7 @@ def extract_text_pdf(path: Path, start: int = 1, end: int | None = None) -> dict
 
 def text_coverage(path: Path, start: int = 1, end: int | None = None) -> float:
     """Return average extracted non-whitespace characters per selected page."""
+    pymupdf = _pymupdf()
     doc = pymupdf.open(path)
     try:
         last = doc.page_count if end is None else min(end, doc.page_count)

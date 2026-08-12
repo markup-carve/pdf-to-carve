@@ -1,5 +1,6 @@
 # Financial report
 
 This synthetic report combines a numeric table, list, and visually distinct caution.
-Carve represents the caution as an admonition. Common Markdown has no admonition
-node, so its output uses a blockquote and bold label as a visual convention.
+Carve represents the caution as an admonition. In the official Markdown export it
+degrades to a bold label and paragraph, and the table caption is absent because
+ordinary Markdown has no corresponding structures.

@@ -17,8 +17,8 @@ def test_example_artifacts_are_valid_and_synchronized(name: str) -> None:
     raw = json.loads((directory / "extraction.json").read_text(encoding="utf-8"))
     document = Document.from_json(raw)
     assert document_to_json(document) == raw
-    assert to_carve(document) == (directory / "expected.crv").read_text(encoding="utf-8")
-    assert (directory / "expected.md").read_text(encoding="utf-8").strip()
+    assert to_carve(document) == (directory / "result.crv").read_text(encoding="utf-8")
+    assert (directory / "result.md").read_text(encoding="utf-8").strip()
     assert (directory / "README.md").read_text(encoding="utf-8").strip()
 
     pdf = pymupdf.open(directory / "input.pdf")

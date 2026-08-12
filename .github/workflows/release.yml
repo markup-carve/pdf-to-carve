@@ -27,6 +27,17 @@ jobs:
             exit 1
           fi
 
+      # The notes live in the repo, so a deleted or rebuilt release loses
+      # nothing, and the tag cannot outrun them: a tag whose notes were never
+      # written fails here rather than publishing an empty release.
+      - name: Check the release notes exist
+        run: |
+          notes=".github/release-notes/${GITHUB_REF_NAME#v}.md"
+          if [ ! -s "$notes" ]; then
+            echo "no release notes at $notes" >&2
+            exit 1
+          fi
+
       - run: uv build
 
       - name: Check distribution metadata
@@ -82,3 +93,31 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
+
+  github-release:
+    name: Publish the GitHub release
+    runs-on: ubuntu-latest
+    needs: [publish]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      # The tag carries a leading v, the notes file does not.
+      - name: Locate the notes
+        id: notes
+        run: echo "path=.github/release-notes/${GITHUB_REF_NAME#v}.md" >> "$GITHUB_OUTPUT"
+
+      # Runs after the PyPI upload, so a release page never advertises a
+      # version the registry does not have.
+      - name: Create the release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: ${{ steps.notes.outputs.path }}
+          files: dist/*
+          make_latest: true

@@ -155,7 +155,3 @@ uv run ruff format --check .
 uv run pytest --cov=pdf_to_carve --cov-report=term-missing
 uv build
 ```
-
-## License
-
-MIT.

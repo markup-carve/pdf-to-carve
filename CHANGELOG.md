@@ -15,6 +15,8 @@
   as an optional compatibility extra.
 - Publish a reproducible competitor benchmark with pinned provenance, raw
   normalized outputs, failure records, and deterministic scoring.
+- Add an opt-in authenticated Claude CLI vision provider with isolated image
+  access, permission-denial checks, and local document validation.
 
 ## 0.1.0 - 2026-08-12
 

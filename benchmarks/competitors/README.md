@@ -77,6 +77,8 @@ automation result, but it is excluded from quality averages.
   successes. Completion is reported separately and quality averages use only
   completed, non-empty outputs.
 - AI output is nondeterministic. The committed vision run is one sample.
+- Claude CLI cost fields are API-equivalent telemetry reported by the CLI, not
+  a claim that subscription-authenticated runs incurred an additional charge.
 - Runtime and RSS were measured sequentially on the machine described in
   `runs.json`; they are operational observations, not cross-platform promises.
 - The Markdown normalization step is shared by all Markdown-producing tools.

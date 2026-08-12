@@ -6,6 +6,7 @@ import base64
 import json
 import mimetypes
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -53,7 +54,8 @@ optional integer rowspan/colspan, for example:
 {"type":"table","headers":[[{"type":"text","text":"Name"}],[{"type":"text","text":"Value"}]],"rows":[[[{"type":"text","text":"A"}],[{"type":"text","text":"1"}]]]}
 Each list item is an object with content as an inline array and optional checked boolean. Figure
 src and alt are strings; figure caption is an inline array. Emit a link only when its URL is
-visible and non-empty; otherwise emit its label as ordinary text."""
+visible and non-empty; otherwise emit its label as ordinary text. Never emit an empty URL or a
+placeholder URL."""
 
 
 class VisionError(RuntimeError):
@@ -176,4 +178,83 @@ def transcribe_images_codex(
             raise VisionError(f"Codex CLI returned invalid JSON: {exc}") from exc
         if not isinstance(value, dict):
             raise VisionError("Codex CLI response must be a JSON object")
+        return value
+
+
+def transcribe_images_claude(
+    images: list[Path], *, model: str, context: str | None = None, timeout: float = 600
+) -> dict[str, Any]:
+    """Use an authenticated local Claude CLI as an explicit vision provider."""
+    executable = shutil.which("claude")
+    if not executable:
+        raise VisionError("claude executable was not found")
+    with tempfile.TemporaryDirectory(prefix="pdf-to-carve-claude-") as directory:
+        isolated = Path(directory)
+        copied = []
+        for number, image in enumerate(images, 1):
+            target = isolated / f"page-{number}{image.suffix.lower()}"
+            shutil.copyfile(image, target)
+            copied.append(target)
+        prompt = "Read these document page images in order using the Read tool:\n"
+        prompt += "\n".join(str(image) for image in copied)
+        prompt += "\n\nTranscribe them as instructed. Return one JSON object only."
+        if context:
+            prompt += f"\n\n{context}"
+        command = [
+            executable,
+            "--print",
+            "--safe-mode",
+            "--no-session-persistence",
+            "--permission-mode",
+            "dontAsk",
+            "--tools",
+            "Read",
+            "--add-dir",
+            directory,
+            "--model",
+            model,
+            "--effort",
+            "low",
+            "--output-format",
+            "json",
+            "--system-prompt",
+            SYSTEM_PROMPT,
+            prompt,
+        ]
+        try:
+            completed = subprocess.run(
+                command, capture_output=True, text=True, timeout=timeout, check=False
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise VisionError(f"Claude CLI exceeded the {timeout:g}-second timeout") from exc
+        if completed.returncode:
+            detail = (completed.stderr or completed.stdout).strip().splitlines()
+            message = detail[-1] if detail else "no response was written"
+            raise VisionError(f"Claude CLI failed: {message}")
+        if len(completed.stdout.encode()) > MAX_RESPONSE_BYTES:
+            raise VisionError("Claude CLI response exceeded 10 MiB")
+        try:
+            envelope = json.loads(completed.stdout)
+        except json.JSONDecodeError as exc:
+            raise VisionError(f"Claude CLI returned an invalid envelope: {exc}") from exc
+        denials = envelope.get("permission_denials")
+        if denials:
+            names = sorted(
+                {item.get("tool_name", "unknown") for item in denials if isinstance(item, dict)}
+            )
+            raise VisionError(f"Claude CLI denied required tool access: {', '.join(names)}")
+        if envelope.get("is_error") or envelope.get("subtype") != "success":
+            raise VisionError(f"Claude CLI failed: {envelope.get('result') or 'unknown error'}")
+        raw = envelope.get("result")
+        if not isinstance(raw, str):
+            raise VisionError("Claude CLI response did not contain text")
+        fenced = re.fullmatch(r"\s*```(?:json)?\s*(\{.*\})\s*```\s*", raw, re.DOTALL)
+        if fenced:
+            raw = fenced.group(1)
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise VisionError(f"Claude CLI returned invalid JSON: {exc}") from exc
+        if not isinstance(value, dict):
+            raise VisionError("Claude CLI response must be a JSON object")
         return value

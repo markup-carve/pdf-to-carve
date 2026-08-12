@@ -21,9 +21,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--save-json", type=Path, help="save the validated extraction model")
     parser.add_argument("--start-page", type=int, default=1)
     parser.add_argument("--end-page", type=int)
-    parser.add_argument("--model", default="gpt-4o-mini")
+    parser.add_argument("--model", help="provider model (defaults: gpt-4o-mini; sonnet for Claude)")
     parser.add_argument(
-        "--provider", choices=("openai", "codex-cli"), default="openai", help="vision provider"
+        "--provider",
+        choices=("openai", "codex-cli", "claude-cli"),
+        default="openai",
+        help="vision provider",
     )
     parser.add_argument(
         "--pdf-backend",
@@ -31,7 +34,7 @@ def _parser() -> argparse.ArgumentParser:
         default="pdfium",
         help="PDF engine (default: permissively licensed PDFium)",
     )
-    parser.add_argument("--api-key", help="API key; prefer OPENAI_API_KEY")
+    parser.add_argument("--api-key", help="OpenAI provider API key; prefer OPENAI_API_KEY")
     parser.add_argument("--base-url", default="https://api.openai.com/v1")
     parser.add_argument("--text-threshold", type=float, default=80.0)
     parser.add_argument("--retries", type=int, default=3, help="transient vision request attempts")

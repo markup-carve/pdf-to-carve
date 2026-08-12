@@ -40,6 +40,16 @@ def test_hybrid_can_use_codex_cli_provider(tmp_path: Path) -> None:
     assert transcribe.call_args.kwargs["model"] == "cli-model"
 
 
+def test_hybrid_can_use_claude_cli_provider_with_provider_default_model(tmp_path: Path) -> None:
+    pdf = tmp_path / "sample.pdf"
+    _pdf(pdf)
+    options = ConversionOptions(mode="hybrid", provider="claude-cli")
+    with patch("pdf_to_carve.pipeline.transcribe_images_claude", return_value=EMPTY) as transcribe:
+        result = convert(pdf, options)
+    assert result.mode == "hybrid"
+    assert transcribe.call_args.kwargs["model"] == "sonnet"
+
+
 def test_pymupdf_remains_an_explicit_compatibility_backend(tmp_path: Path) -> None:
     pdf = tmp_path / "sample.pdf"
     _pdf(pdf)

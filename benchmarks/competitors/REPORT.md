@@ -6,7 +6,9 @@ into a quality average. See [README.md](README.md) for method and limitations.
 
 | Extractor | Version | Completed | Character | Word | Structure |
 | --- | --- | ---: | ---: | ---: | ---: |
+| Carve hybrid via Claude CLI (Opus) | pdf-to-carve 152ca7a plus claude-cli adapter; Claude Code 2.1.228; claude-opus-5 low | 2/2 | 0.938 | 0.839 | 0.851 |
 | Carve hybrid via Codex CLI | pdf-to-carve a23249a; gpt-5.6-sol low | 2/2 | 0.934 | 0.861 | 0.873 |
+| Carve hybrid via Claude CLI (Sonnet) | pdf-to-carve 152ca7a plus claude-cli adapter; Claude Code 2.1.228; claude-sonnet-5 low | 2/2 | 0.925 | 0.863 | 0.895 |
 | Docling | 2.119.0 | 1/2 | 0.920 | 0.858 | 0.217 |
 | Unstructured fast | 0.25.2 | 2/2 | 0.831 | 0.777 | n/a |
 | Carve deterministic text | pdf-to-carve 4d28758; PyMuPDF backend | 2/2 | 0.827 | 0.772 | 0.105 |
@@ -36,6 +38,10 @@ into a quality average. See [README.md](README.md) for method and limitations.
 | MinerU | 03-math-diagrams | complete | 0.740364 | 0.684492 | 2/6 |
 | PyMuPDF4LLM | 02-showcase | complete | 0.796117 | 0.769231 | 10/23 |
 | PyMuPDF4LLM | 03-math-diagrams | complete | 0.755396 | 0.747368 | 4/6 |
+| Carve hybrid via Claude CLI (Sonnet) | 02-showcase | complete | 0.943333 | 0.943396 | 22/23 |
+| Carve hybrid via Claude CLI (Sonnet) | 03-math-diagrams | complete | 0.905977 | 0.78341 | 5/6 |
+| Carve hybrid via Claude CLI (Opus) | 02-showcase | complete | 0.942361 | 0.924051 | 20/23 |
+| Carve hybrid via Claude CLI (Opus) | 03-math-diagrams | complete | 0.933245 | 0.754545 | 5/6 |
 | MarkPDFdown | 02-showcase | provider_error_empty_output_exit_0 | n/a | n/a | n/a |
 | MarkPDFdown | 03-math-diagrams | not_attempted_after_shared_provider_exhaustion | n/a | n/a | n/a |
 
@@ -54,14 +60,18 @@ Batch-only measurements and timeout details remain in `runs.json`.
 | Marker | 78.43, 60.37 | 969.2, 977.5 |
 | MinerU | 64.48, 28.20 | 2347.4, 2161.2 |
 | PyMuPDF4LLM | 1.29, 1.08 | 147.9, 148.8 |
+| Carve hybrid via Claude CLI (Sonnet) | 18.02, 23.37 | 349.7, 325.3 |
+| Carve hybrid via Claude CLI (Opus) | 25.47, 33.13 | 325.9, 325.9 |
 | MarkPDFdown | 7.68 | 340.5 |
 
 ## Reading the result
 
-The Carve hybrid sample leads both text-fidelity means and structural-kind recall
-on this corpus. Marker has the strongest structural-kind recall among completed
-third-party runs, while Docling has a strong single-document text score but timed
-out before completing the corpus. Plain-text-only output has no structural score.
+The three Carve hybrid variants occupy the leading positions on this corpus:
+Claude Opus has the highest character mean, Claude Sonnet the highest word and
+structural-kind means, and Codex sits between them. Marker has the strongest
+structural-kind recall among third-party destination pipelines. Docling has a
+strong single-document text score but timed out before completing the corpus.
+Plain-text-only output has no structural score.
 
 One vision competitor is listed but unscored: the available provider account was
 credit-exhausted. The tool logged the page failure, returned exit status zero, and

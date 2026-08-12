@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "title": "Adaptive Signals",
+  "author": "Example Research Group",
+  "language": "en",
+  "blocks": [
+    {"type": "heading", "level": 1, "content": [{"type": "text", "text": "Adaptive Signals"}]},
+    {"type": "paragraph", "content": [{"type": "emphasis", "children": [{"type": "text", "text": "A compact two-column research example"}]}]},
+    {"type": "heading", "level": 2, "content": [{"type": "text", "text": "Method"}]},
+    {"type": "paragraph", "content": [
+      {"type": "text", "text": "We estimate the response from noisy observations. The objective combines fit and regularization: "},
+      {"type": "math", "text": "J(\\theta)=\\sum_i(y_i-f_\\theta(x_i))^2+\\lambda\\lVert\\theta\\rVert^2"},
+      {"type": "text", "text": "."}
+    ]},
+    {"type": "heading", "level": 2, "content": [{"type": "text", "text": "Results"}]},
+    {"type": "paragraph", "content": [
+      {"type": "text", "text": "The optimum improved accuracy by 12.4%."},
+      {"type": "footnote", "children": [{"type": "text", "text": "Values are means over five seeded runs."}]}
+    ]},
+    {"type": "table", "headers": [
+      [{"type": "text", "text": "Condition"}],
+      [{"type": "text", "text": "Accuracy"}],
+      [{"type": "text", "text": "Samples"}]
+    ], "rows": [
+      [[{"type": "text", "text": "Baseline"}], [{"type": "text", "text": "81.2%"}], [{"type": "text", "text": "240"}]],
+      [[{"type": "text", "text": "Adaptive"}], [{"type": "text", "text": "93.6%"}], [{"type": "text", "text": "240"}]]
+    ], "caption": [{"type": "text", "text": "Accuracy over five seeded runs"}]}
+  ],
+  "provenance": [
+    {"block": 0, "page": 1, "confidence": 1.0},
+    {"block": 2, "page": 1, "bbox": [45, 105, 285, 135], "confidence": 0.99},
+    {"block": 6, "page": 1, "bbox": [310, 150, 550, 235], "confidence": 0.98}
+  ]
+}

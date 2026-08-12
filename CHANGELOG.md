@@ -8,6 +8,7 @@
 - Add bounded input, page, DPI, and provider-response safeguards.
 - Add an escaped, self-contained HTML review report.
 - Document the review workflow and privacy/security boundaries.
+- Add reproducible PDF-to-Carve and Markdown comparison examples.
 
 ## 0.1.0 - 2026-08-12
 

@@ -8,7 +8,9 @@ to write Carve syntax. Extraction produces a small, validated JSON document;
 a deterministic writer produces Carve.
 
 See [Why Carve over Markdown?](docs/why-carve-over-markdown.md) and the
-[equal-model complex-PDF benchmark](docs/vision-benchmark-2026-08.md).
+[equal-model complex-PDF benchmark](docs/vision-benchmark-2026-08.md). The
+[conversion examples](examples/README.md) provide small before-and-after PDFs,
+validated JSON, Carve, and Markdown for direct inspection.
 
 ```text
 PDF/image -> text, vision, or hybrid extraction -> document JSON -> Carve writer

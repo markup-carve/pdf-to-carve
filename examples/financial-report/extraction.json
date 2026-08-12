@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "title": "Northwind Quarterly Summary",
+  "language": "en",
+  "blocks": [
+    {"type": "heading", "level": 1, "content": [{"type": "text", "text": "Northwind Quarterly Summary"}]},
+    {"type": "table", "headers": [
+      [{"type": "text", "text": "Region"}], [{"type": "text", "text": "Q1"}],
+      [{"type": "text", "text": "Q2"}], [{"type": "text", "text": "Change"}]
+    ], "rows": [
+      [[{"type": "text", "text": "North"}], [{"type": "text", "text": "1,240"}], [{"type": "text", "text": "1,410"}], [{"type": "text", "text": "+13.7%"}]],
+      [[{"type": "text", "text": "South"}], [{"type": "text", "text": "980"}], [{"type": "text", "text": "1,020"}], [{"type": "text", "text": "+4.1%"}]],
+      [[{"type": "strong", "children": [{"type": "text", "text": "Total"}]}], [{"type": "strong", "children": [{"type": "text", "text": "2,220"}]}], [{"type": "strong", "children": [{"type": "text", "text": "2,430"}]}], [{"type": "strong", "children": [{"type": "text", "text": "+9.5%"}]}]]
+    ], "caption": [{"type": "text", "text": "Revenue by region (EUR thousands)"}]},
+    {"type": "heading", "level": 2, "content": [{"type": "text", "text": "Highlights"}]},
+    {"type": "list", "ordered": false, "items": [
+      {"content": [{"type": "text", "text": "Recurring revenue reached 68%."}]},
+      {"content": [{"type": "text", "text": "Operating margin increased to 17.2%."}]}
+    ]},
+    {"type": "admonition", "kind": "caution", "title": [{"type": "text", "text": "Caution"}], "content": [{"type": "text", "text": "Currency movements may affect the next quarter."}]}
+  ],
+  "provenance": [
+    {"block": 1, "page": 1, "bbox": [45, 88, 550, 230], "confidence": 0.99},
+    {"block": 4, "page": 1, "bbox": [45, 360, 550, 425], "confidence": 0.97}
+  ]
+}

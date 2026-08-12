@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "title": "Editorial Review",
+  "language": "en",
+  "blocks": [
+    {"type": "heading", "level": 1, "content": [{"type": "text", "text": "Editorial Review"}]},
+    {"type": "paragraph", "content": [
+      {"type": "substitute", "children": [{"type": "text", "text": "The launch is scheduled for Tuesday."}], "replacement": [{"type": "text", "text": "The public preview is scheduled for Thursday."}]}
+    ]},
+    {"type": "paragraph", "content": [
+      {"type": "delete", "children": [{"type": "text", "text": "Internal date: Tuesday. "}]},
+      {"type": "insert", "children": [{"type": "text", "text": "Public date: Thursday."}]}
+    ]},
+    {"type": "admonition", "kind": "warning", "title": [{"type": "text", "text": "Reviewer note"}], "content": [{"type": "text", "text": "Confirm legal approval before publishing. Keep both revisions in the audit trail."}]}
+  ],
+  "provenance": [
+    {"block": 1, "page": 1, "bbox": [45, 95, 320, 205], "confidence": 0.96, "evidence": "Draft and revised sentence"},
+    {"block": 3, "page": 1, "bbox": [45, 245, 520, 322], "confidence": 0.99}
+  ]
+}

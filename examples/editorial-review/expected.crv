@@ -1,0 +1,16 @@
+---yaml
+title: "Editorial Review"
+lang: "en"
+---
+
+# Editorial Review
+
+{~The launch is scheduled for Tuesday.~>The public preview is scheduled for Thursday.~}
+
+{-Internal date: Tuesday. -}{+Public date: Thursday.+}
+
+::: warning
+*Reviewer note*
+
+Confirm legal approval before publishing. Keep both revisions in the audit trail.
+:::

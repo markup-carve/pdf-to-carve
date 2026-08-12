@@ -34,7 +34,15 @@ Issues = "https://github.com/markup-carve/pdf-to-carve/issues"
 packages = ["src/pdf_to_carve"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests", "/README.md", "/LICENSE", "/CHANGELOG.md", "/pyproject.toml"]
+include = [
+  "/src",
+  "/tests",
+  "/examples",
+  "/README.md",
+  "/LICENSE",
+  "/CHANGELOG.md",
+  "/pyproject.toml",
+]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"

@@ -11,7 +11,7 @@ def test_serializes_native_carve_without_markdown_stage() -> None:
     source = to_carve(Document.from_json(json.loads(FIXTURE.read_text())))
     assert source.startswith('---yaml\ntitle: "Example Document"')
     assert "{#results}\n# Results & discussion" in source
-    assert "The *important* result is $x^2$." in source
+    assert "The *important* result is $`x^2`." in source
     assert "|=Name|=Value|" in source
     assert "`a|b`" in source
     assert "- [ ] first" in source
@@ -35,3 +35,26 @@ def test_escapes_document_text_and_variable_code_fences() -> None:
 def test_page_break_uses_canonical_nonempty_container_layout() -> None:
     source = to_carve(Document.from_json({"version": 1, "blocks": [{"type": "page_break"}]}))
     assert source == "::: page-break\n\n:::\n"
+
+
+def test_math_and_thematic_break_use_native_carve_syntax() -> None:
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {"type": "paragraph", "content": [{"type": "math", "text": "x^2"}]},
+                {"type": "thematic_break"},
+            ],
+        }
+    )
+    assert to_carve(document) == "$`x^2`\n\n---\n"
+
+
+def test_figure_alt_keeps_plain_underscores_and_escapes_brackets() -> None:
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [{"type": "figure", "src": "image.png", "alt": "print_cdp.py [diagram]"}],
+        }
+    )
+    assert to_carve(document) == r"![print_cdp.py \[diagram\]](image.png)" + "\n"

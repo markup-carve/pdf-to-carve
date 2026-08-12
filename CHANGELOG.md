@@ -7,4 +7,5 @@
 - Add a strict, versioned extraction document model.
 - Add deterministic Carve serialization and optional official CLI verification.
 - Add saved-JSON replay, page selection, packaging, tests, and CI.
-
+- Emit native Carve math and canonical thematic/page breaks.
+- Preserve plain underscores in figure alt text.

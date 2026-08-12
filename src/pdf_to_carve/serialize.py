@@ -13,6 +13,16 @@ def _escape(text: str) -> str:
     return _SPECIAL.sub(r"\\\1", text).replace("\r", "").replace("\n", " ")
 
 
+def _escape_alt(text: str) -> str:
+    return (
+        text.replace("\r", "")
+        .replace("\n", " ")
+        .replace("\\", r"\\")
+        .replace("[", r"\[")
+        .replace("]", r"\]")
+    )
+
+
 def _inline(nodes: tuple[Inline, ...], *, table: bool = False) -> str:
     out = []
     for node in nodes:
@@ -21,13 +31,9 @@ def _inline(nodes: tuple[Inline, ...], *, table: bool = False) -> str:
             if table:
                 value = value.replace("|", r"\|")
         elif node.type == "code":
-            ticks = "`" * (
-                max((len(m.group()) for m in re.finditer(r"`+", node.text)), default=0) + 1
-            )
-            value = f"{ticks}{node.text}{ticks}"
+            value = _code_span(node.text)
         elif node.type == "math":
-            math = node.text.replace("$", r"\$")
-            value = f"${math}$"
+            value = f"${_code_span(node.text)}"
         elif node.type == "link":
             url = node.url.replace("\\", "%5C").replace(")", "%29") if node.url else ""
             value = f"[{_inline(node.children)}]({url})"
@@ -37,6 +43,11 @@ def _inline(nodes: tuple[Inline, ...], *, table: bool = False) -> str:
             value = f"{mark}{_inline(node.children)}{mark}"
         out.append(value)
     return "".join(out)
+
+
+def _code_span(text: str) -> str:
+    ticks = "`" * (max((len(m.group()) for m in re.finditer(r"`+", text)), default=0) + 1)
+    return f"{ticks}{text}{ticks}"
 
 
 def _frontmatter(doc: Document) -> str:
@@ -88,7 +99,7 @@ def _block(block: Block) -> str:
             rows.append(f"^ {_inline(d['caption'])}")
         return "\n".join(rows)
     if block.type == "figure":
-        alt = _escape(d["alt"]).replace("]", r"\]")
+        alt = _escape_alt(d["alt"])
         src = d["src"].replace(")", "%29")
         result = f"![{alt}]({src})"
         if "id" in d:
@@ -97,7 +108,7 @@ def _block(block: Block) -> str:
             result += f"\n^ {_inline(d['caption'])}"
         return result
     if block.type == "thematic_break":
-        return "***"
+        return "---"
     if block.type == "page_break":
         return "::: page-break\n\n:::"
     raise AssertionError(f"unhandled block type: {block.type}")

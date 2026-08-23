@@ -30,6 +30,28 @@ def test_hybrid_supplies_positioned_text_and_reuses_cache(tmp_path: Path) -> Non
     assert "searchable evidence" in transcribe.call_args.kwargs["context"]
 
 
+def test_hybrid_supplies_pdf_link_destinations_as_evidence(tmp_path: Path) -> None:
+    pdf = tmp_path / "linked.pdf"
+    document = pymupdf.open()
+    page = document.new_page()
+    page.insert_text((20, 30), "linked evidence")
+    page.insert_link(
+        {
+            "kind": pymupdf.LINK_URI,
+            "from": pymupdf.Rect(20, 18, 100, 34),
+            "uri": "https://example.com/docs",
+        }
+    )
+    document.save(pdf)
+    document.close()
+
+    options = ConversionOptions(mode="hybrid", api_key="x")
+    with patch("pdf_to_carve.pipeline.transcribe_images", return_value=EMPTY) as transcribe:
+        convert(pdf, options)
+    context = transcribe.call_args.kwargs["context"]
+    assert 'URLs=["https://example.com/docs"]' in context
+
+
 def test_hybrid_can_use_codex_cli_provider(tmp_path: Path) -> None:
     pdf = tmp_path / "sample.pdf"
     _pdf(pdf)

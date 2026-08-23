@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 from typing import Any
 
@@ -53,6 +54,8 @@ def evidence_prompt(evidence: list[dict[str, Any]], max_chars: int = 60_000) -> 
     for item in evidence:
         bbox = ",".join(f"{n:g}" for n in item["bbox"])
         line = f"p{item['page']} [{bbox}] {item['text']}"
+        if item.get("urls"):
+            line += f" URLs={json.dumps(item['urls'], ensure_ascii=True)}"
         if used + len(line) + 1 > max_chars:
             lines.append("[evidence truncated]")
             break

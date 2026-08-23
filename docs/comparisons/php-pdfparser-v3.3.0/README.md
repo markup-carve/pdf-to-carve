@@ -20,6 +20,11 @@ requirements are not identical.
 - [`ours-text/result.crv`](ours-text/result.crv): our local extraction result.
 - [`ours-text/result.md`](ours-text/result.md): our result rendered through the
   official Carve Markdown writer.
+- [`ours-hybrid/result.crv`](ours-hybrid/result.crv): one captured hybrid result
+  using rendered pages, positioned PDF evidence, and `gpt-5.6-sol`.
+- [`ours-hybrid/result.md`](ours-hybrid/result.md): that hybrid result rendered
+  through the official Carve Markdown writer. It is an additional reference,
+  not part of the no-AI comparison.
 
 ## Commands
 
@@ -45,12 +50,12 @@ carve render --markdown ours-text/result.crv > ours-text/result.md
 | Wrapped paragraphs | Lines and paragraphs merge | Correctly joined and separated |
 | Bold and italic | Preserved | Preserved |
 | Superscript/subscript | Lost or displaced | Preserved |
-| Underline/highlight | Lost | Lost |
+| Underline/highlight | Lost | Preserved |
 | Link label | Preserved | Preserved |
-| Link URL | Lost | Lost |
+| Link URL | Lost | Preserved from the PDF annotation |
 | Unordered list | Markers lost | Preserved |
 | Ordered list | Preserved | Preserved |
-| Blockquote | Becomes italic text | Becomes italic text |
+| Blockquote | Becomes italic text | Preserved |
 | Fenced code | Fence and indentation lost | Code block preserved; language and indentation lost |
 | Simple table | Flattened text | Preserved as a table |
 | Image | Labels become a heading | Labels remain plain text; image and alt text are lost |
@@ -58,12 +63,22 @@ carve render --markdown ours-text/result.crv > ours-text/result.md
 
 Our improved text mode is closer to the answer key on this fixture. It now
 recovers the heading hierarchy, paragraph boundaries, styling, lists, code
-block, simple table, super/subscript, and literal punctuation. Their result
-still has the advantage of a pure PHP deployment and direct Markdown output.
+block, simple table, super/subscript, link destination, underline, highlight,
+blockquote, and literal punctuation. Their result still has the advantage of a
+pure PHP deployment and direct Markdown output.
 
-Neither local extractor recovers the PDF link annotation, image semantics,
-underline, or highlight. Neither can reliably distinguish the visually italic
-blockquote from a normal italic paragraph using text evidence alone.
+The deterministic result still loses code indentation and language, table
+alignment hints, and image semantics. The PDF contains no visible code indent,
+so reconstructing it would require inference rather than extraction. The image
+is vector artwork rather than an embedded raster image.
+
+## Additional hybrid reference
+
+The captured hybrid run also recovers the PHP language and indentation. It
+reconstructs the fully legible vector flow as editable Mermaid rather than
+flattening its labels. It still loses the table's right-alignment hints. The
+hybrid result uses a model, so it is intentionally excluded from the fair
+PHP-only versus deterministic-text comparison.
 
 ## Performance
 
@@ -72,21 +87,18 @@ Sequential local observations from 23 August 2026, seven runs each:
 | Extractor | Median | Range | Approx. peak RSS |
 | --- | ---: | ---: | ---: |
 | Their pure PHP PDF to Markdown | 0.15 s | 0.13 to 0.18 s | 43.5 MiB |
-| Our PDFium PDF to Carve | 0.23 s | 0.21 to 0.31 s | 36.1 MiB |
 | Our PDFium PDF to Carve to Markdown | 0.36 s | 0.34 to 0.38 s | 67.1 MiB |
 
-For extraction alone, their median is about 1.5 times faster and ours uses about
-17 percent less peak memory. Comparing final Markdown output, their direct path
-is about 2.4 times faster and uses less memory than our two-process
-PDF-to-Carve-to-Markdown route. These numbers include language and CLI startup
-and apply only to this fixture and environment.
+Their direct path is about 2.4 times faster and uses less memory than our
+two-process PDF-to-Carve-to-Markdown route. These numbers include language and
+CLI startup and apply only to this fixture and environment.
 
 ## Remaining local improvements
 
-1. Read PDF link annotations and match them to text rectangles.
-2. Detect underline and highlight from page drawing objects.
-3. Preserve code indentation and infer a language only when visible evidence
+1. Preserve code indentation and infer a language only when visible evidence
    supports it.
-4. Extract embedded images and associate them with nearby captions/alt text.
-5. Add conservative quote detection when indentation and font evidence agree.
-6. Extend table detection to spanning cells without guessing malformed grids.
+2. Reconstruct raster and vector figures with reliable asset references.
+3. Detect columns and other non-linear reading order.
+4. Preserve table alignment and extend detection to spanning cells without
+   guessing malformed grids.
+5. Resolve internal PDF destinations in addition to external URI annotations.

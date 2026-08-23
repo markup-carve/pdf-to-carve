@@ -2,9 +2,9 @@
 
 This document checks whether a PDF extractor can recover ordinary Markdown structure without relying on complex Carve features.
 
-Text can be **bold**, *italic*, or ***bold and italic***. It can also contain a [visible link](https://example.com/docs).
+Text can be *bold*, /italic/, or */bold and italic/*. It can also contain a [visible link](https://example.com/docs).
 
-The extended formatting line contains <u>underlined text</u>, <mark>highlighted text</mark>, superscript<sup>note</sup>, and subscript<sub>index</sub>.
+The extended formatting line contains _underlined text_, =highlighted text=, superscript{^note^}, and subscript{,index,}.
 
 ## Paragraphs
 
@@ -28,19 +28,18 @@ This is a separate paragraph. The vertical space above it should prevent both pa
 
 ## Code
 
-```
+``` php
 function greet(string $name): string {
-return "Hello, {$name}!";
+    return "Hello, {$name}!";
 }
 ```
 
 ## Simple table
 
-| Region | Revenue | Growth |
-| --- | --- | --- |
-| North | 1,240 | 13.7% |
-| South | 980 | 4.1% |
-| Total | 2,220 | 9.5% |
+|=Region|=Revenue|=Growth|
+| North | 1,240 | 13.7\% |
+| South | 980 | 4.1\% |
+| Total | 2,220 | 9.5\% |
 
 ## Literal punctuation
 
@@ -48,12 +47,20 @@ The next lines are literal text, not Markdown constructs:
 
 \# not a heading
 
+::: page-break
+
+:::
+
 \- not a list item
 
 \*not emphasis\*, \_not emphasis\_, \[not a link\], 2 | 3, C:\\docs\\file, and a \`backtick.
 
 ## Image
 
-Plan Build Ship
+``` mermaid
+flowchart LR
+    Plan[Plan] --> Build[Build]
+    Build --> Ship[Ship]
+```
 
 The image above uses standard Markdown image syntax with useful alternative text.

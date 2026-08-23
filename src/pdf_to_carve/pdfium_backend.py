@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ctypes
 import hashlib
 import re
 import statistics
@@ -9,6 +10,97 @@ from pathlib import Path
 from typing import Any
 
 import pypdfium2 as pdfium
+
+
+def _page_links(page: pdfium.PdfPage) -> list[dict[str, Any]]:
+    """Return external URI annotations in top-left page coordinates."""
+    height = page.get_height()
+    result = []
+    count = pdfium.raw.FPDFPage_GetAnnotCount(page.raw)
+    for index in range(count):
+        annotation = pdfium.raw.FPDFPage_GetAnnot(page.raw, index)
+        if not annotation:
+            continue
+        try:
+            if pdfium.raw.FPDFAnnot_GetSubtype(annotation) != pdfium.raw.FPDF_ANNOT_LINK:
+                continue
+            link = pdfium.raw.FPDFAnnot_GetLink(annotation)
+            action = pdfium.raw.FPDFLink_GetAction(link) if link else None
+            if not action or pdfium.raw.FPDFAction_GetType(action) != pdfium.raw.PDFACTION_URI:
+                continue
+            length = pdfium.raw.FPDFAction_GetURIPath(page.pdf.raw, action, None, 0)
+            if length <= 1 or length > 65_536:
+                continue
+            buffer = ctypes.create_string_buffer(length)
+            if not pdfium.raw.FPDFAction_GetURIPath(page.pdf.raw, action, buffer, length):
+                continue
+            rectangle = pdfium.raw.FS_RECTF()
+            if not pdfium.raw.FPDFAnnot_GetRect(annotation, ctypes.byref(rectangle)):
+                continue
+            result.append(
+                {
+                    "bbox": [
+                        float(rectangle.left),
+                        height - float(rectangle.top),
+                        float(rectangle.right),
+                        height - float(rectangle.bottom),
+                    ],
+                    "url": buffer.value.decode("utf-8", errors="replace"),
+                }
+            )
+        finally:
+            pdfium.raw.FPDFPage_CloseAnnot(annotation)
+    return result
+
+
+def _page_paths(page: pdfium.PdfPage) -> list[list[float]]:
+    """Return path bounds in top-left page coordinates for decoration matching."""
+    height = page.get_height()
+    return [
+        [left, height - top, right, height - bottom]
+        for item in page.get_objects(filter=(pdfium.raw.FPDF_PAGEOBJ_PATH,), max_depth=8)
+        for left, bottom, right, top in [item.get_bounds()]
+    ]
+
+
+def _horizontal_coverage(first: list[float], second: list[float]) -> float:
+    overlap = max(0.0, min(first[2], second[2]) - max(first[0], second[0]))
+    return overlap / max(0.01, first[2] - first[0])
+
+
+def _vertical_coverage(first: list[float], second: list[float]) -> float:
+    overlap = max(0.0, min(first[3], second[3]) - max(first[1], second[1]))
+    return overlap / max(0.01, first[3] - first[1])
+
+
+def _decorate_fragment(
+    fragment: dict[str, Any], links: list[dict[str, Any]], paths: list[list[float]]
+) -> None:
+    bbox = fragment["bbox"]
+    width = bbox[2] - bbox[0]
+    height = bbox[3] - bbox[1]
+    for link in links:
+        if (
+            _horizontal_coverage(bbox, link["bbox"]) >= 0.7
+            and _vertical_coverage(bbox, link["bbox"]) >= 0.5
+        ):
+            fragment["url"] = link["url"]
+            break
+    for path in paths:
+        path_width = path[2] - path[0]
+        path_height = path[3] - path[1]
+        if path_width > width + fragment["size"] * 1.5:
+            continue
+        horizontal = _horizontal_coverage(bbox, path)
+        if horizontal < 0.7:
+            continue
+        if (
+            path_height <= max(1.5, fragment["size"] * 0.2)
+            and bbox[3] - fragment["size"] * 0.15 <= path[1] <= bbox[3] + fragment["size"] * 0.45
+        ):
+            fragment["underline"] = True
+        elif height * 0.65 <= path_height <= height * 1.8 and _vertical_coverage(bbox, path) >= 0.6:
+            fragment["highlight"] = True
 
 
 def _range(document: pdfium.PdfDocument, start: int, end: int | None) -> range:
@@ -23,6 +115,8 @@ def _objects(page: pdfium.PdfPage) -> list[dict[str, Any]]:
     height = page.get_height()
     text_page = page.get_textpage()
     try:
+        links = _page_links(page)
+        paths = _page_paths(page)
         fragments = []
         for item in page.get_objects(
             filter=(pdfium.raw.FPDF_PAGEOBJ_TEXT,), max_depth=8, textpage=text_page
@@ -34,18 +128,18 @@ def _objects(page: pdfium.PdfPage) -> list[dict[str, Any]]:
             font = item.get_font()
             base_font = font.get_base_name().lower()
             family = font.get_family_name().lower()
-            fragments.append(
-                {
-                    "text": text,
-                    "size": float(item.get_font_size()),
-                    "bbox": [left, height - top, right, height - bottom],
-                    "bold": any(name in base_font for name in ("bold", "heavy", "black")),
-                    "italic": any(name in base_font for name in ("italic", "oblique", "slanted")),
-                    "monospace": any(
-                        name in base_font or name in family for name in ("mono", "courier")
-                    ),
-                }
-            )
+            fragment = {
+                "text": text,
+                "size": float(item.get_font_size()),
+                "bbox": [left, height - top, right, height - bottom],
+                "bold": any(name in base_font for name in ("bold", "heavy", "black")),
+                "italic": any(name in base_font for name in ("italic", "oblique", "slanted")),
+                "monospace": any(
+                    name in base_font or name in family for name in ("mono", "courier")
+                ),
+            }
+            _decorate_fragment(fragment, links, paths)
+            fragments.append(fragment)
         rows: list[dict[str, Any]] = []
         for item in fragments:
             if not rows:
@@ -81,6 +175,9 @@ def _objects(page: pdfium.PdfPage) -> list[dict[str, Any]]:
                 and item["text"][:1].isupper()
             ):
                 separator = " "
+            if item["text"][:1] in ",.;:!?)]}" and previous["text"].endswith((" ", "\t")):
+                previous["text"] = previous["text"].rstrip()
+                previous["runs"][-1]["text"] = previous["runs"][-1]["text"].rstrip()
             previous["text"] = previous["text"] + separator + item["text"]
             run = dict(item)
             run["text"] = separator + run["text"]
@@ -119,7 +216,9 @@ def _visual_rows(items: list[dict[str, Any]], body_size: float) -> list[list[dic
     return rows
 
 
-def _content(item: dict[str, Any], *, styled: bool = True) -> list[dict[str, Any]]:
+def _content(
+    item: dict[str, Any], *, styled: bool = True, suppress_italic: bool = False
+) -> list[dict[str, Any]]:
     if not styled:
         return [{"type": "text", "text": item["text"].strip()}]
     result: list[dict[str, Any]] = []
@@ -129,8 +228,30 @@ def _content(item: dict[str, Any], *, styled: bool = True) -> list[dict[str, Any
         if run["size"] >= item["size"] * 0.9 and len(run["text"].strip()) > 1
     ]
     baseline_center = statistics.median(normal_centers) if normal_centers else None
+
+    def append(node: dict[str, Any]) -> None:
+        if result and result[-1]["type"] == node["type"] == "text":
+            result[-1]["text"] += node["text"]
+        else:
+            result.append(node)
+
     for run in item["runs"]:
-        text = run["text"]
+        raw_text = run["text"]
+        if not raw_text:
+            continue
+        decorated = bool(
+            run["bold"]
+            or run["italic"]
+            or run.get("underline")
+            or run.get("highlight")
+            or run.get("url")
+            or (baseline_center is not None and run["size"] <= item["size"] * 0.8)
+        )
+        leading = raw_text[: len(raw_text) - len(raw_text.lstrip())] if decorated else ""
+        trailing = raw_text[len(raw_text.rstrip()) :] if decorated else ""
+        text = raw_text.strip() if decorated else raw_text
+        if leading:
+            append({"type": "text", "text": leading})
         if not text:
             continue
         node: dict[str, Any] = {"type": "text", "text": text}
@@ -138,14 +259,19 @@ def _content(item: dict[str, Any], *, styled: bool = True) -> list[dict[str, Any
             center = (run["bbox"][1] + run["bbox"][3]) / 2
             kind = "superscript" if center < baseline_center else "subscript"
             node = {"type": kind, "children": [node]}
-        elif run["italic"]:
+        elif run["italic"] and not suppress_italic:
             node = {"type": "emphasis", "children": [node]}
         if run["bold"]:
             node = {"type": "strong", "children": [node]}
-        if result and result[-1]["type"] == node["type"] == "text":
-            result[-1]["text"] += node["text"]
-        else:
-            result.append(node)
+        if run.get("underline"):
+            node = {"type": "underline", "children": [node]}
+        if run.get("highlight"):
+            node = {"type": "highlight", "children": [node]}
+        if run.get("url"):
+            node = {"type": "link", "url": run["url"], "children": [node]}
+        append(node)
+        if trailing:
+            append({"type": "text", "text": trailing})
     return result
 
 
@@ -335,7 +461,19 @@ def extract_text_pdf(path: Path, start: int = 1, end: int | None = None) -> dict
                         break
                     _join_lines(item, following)
                     index += 1
-                blocks.append({"type": "paragraph", "content": _content(item)})
+                is_quote = (
+                    item["bbox"][0] - left_margin >= body_size * 0.75
+                    and item["bbox"][0] - left_margin <= body_size * 3
+                    and len(item["text"]) >= 40
+                    and item["runs"]
+                    and all(run["italic"] for run in item["runs"] if run["text"].strip())
+                )
+                blocks.append(
+                    {
+                        "type": "quote" if is_quote else "paragraph",
+                        "content": _content(item, suppress_italic=is_quote),
+                    }
+                )
                 index += 1
         metadata = document.get_metadata_dict()
         result: dict[str, Any] = {"version": 1, "blocks": blocks}
@@ -371,14 +509,16 @@ def positioned_text(path: Path, start: int = 1, end: int | None = None) -> list[
             page = document[number]
             width, height = page.get_size()
             for item in _objects(page):
-                result.append(
-                    {
-                        "page": number + 1,
-                        "bbox": [round(float(value), 2) for value in item["bbox"]],
-                        "page_size": [round(width, 2), round(height, 2)],
-                        "text": item["text"],
-                    }
-                )
+                evidence = {
+                    "page": number + 1,
+                    "bbox": [round(float(value), 2) for value in item["bbox"]],
+                    "page_size": [round(width, 2), round(height, 2)],
+                    "text": item["text"],
+                }
+                urls = list(dict.fromkeys(run["url"] for run in item["runs"] if run.get("url")))
+                if urls:
+                    evidence["urls"] = urls
+                result.append(evidence)
         return result
     finally:
         document.close()

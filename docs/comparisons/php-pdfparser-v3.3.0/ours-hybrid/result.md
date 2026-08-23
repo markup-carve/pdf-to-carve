@@ -28,9 +28,9 @@ This is a separate paragraph. The vertical space above it should prevent both pa
 
 ## Code
 
-```
+```php
 function greet(string $name): string {
-return "Hello, {$name}!";
+    return "Hello, {$name}!";
 }
 ```
 
@@ -54,6 +54,10 @@ The next lines are literal text, not Markdown constructs:
 
 ## Image
 
-Plan Build Ship
+```mermaid
+flowchart LR
+    Plan[Plan] --> Build[Build]
+    Build --> Ship[Ship]
+```
 
 The image above uses standard Markdown image syntax with useful alternative text.

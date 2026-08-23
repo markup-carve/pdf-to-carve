@@ -7,6 +7,10 @@
 - Improve deterministic PDFium text extraction with document-relative heading
   levels, paragraph line joining, font-run styling, super/subscript, conservative
   unordered and ordered lists, monospaced code blocks, and simple table grids.
+- Recover external link annotations, geometrically supported underline and
+  highlight decoration, and conservative indented quotations in text mode.
+- Supply PDF link destinations to hybrid extraction and strengthen visual
+  guidance for code indentation, decoration, quotations, and diagrams.
 
 ### Output
 

@@ -34,7 +34,12 @@ grid without empty placeholder cells. When every node, edge and label of a rende
 legible, reconstruct a minimal equivalent code_block with language mermaid; otherwise use a
 figure. When chart labels and values are legible, reconstruct a valid Chart.js JSON code_block
 with language chart; otherwise use a figure. Use figure src placeholders exactly as
-assets/page-N-figure-M.png. Include uncertain visible text rather than guessing silently."""
+assets/page-N-figure-M.png. Preserve visible underline, highlight, quote indentation, and code
+indentation. Infer a code language only when visible syntax strongly supports it. Treat a coherent
+group of shapes, connectors, and labels as one figure or reconstructed diagram instead of loose
+paragraphs. When a whole quote is italic only because of its block styling, emit a quote without
+duplicating that presentation as emphasis. Preserve distinct emphasis inside a quote. Include
+uncertain visible text rather than guessing silently."""
 
 # The contract uses explicit ``type`` discriminators. Keep a compact example in provider
 # instructions because some models otherwise invent shorthand objects such as
@@ -53,9 +58,9 @@ arrays of cells; a cell is either an inline array or an object with content (an 
 optional integer rowspan/colspan, for example:
 {"type":"table","headers":[[{"type":"text","text":"Name"}],[{"type":"text","text":"Value"}]],"rows":[[[{"type":"text","text":"A"}],[{"type":"text","text":"1"}]]]}
 Each list item is an object with content as an inline array and optional checked boolean. Figure
-src and alt are strings; figure caption is an inline array. Emit a link only when its URL is
-visible and non-empty; otherwise emit its label as ordinary text. Never emit an empty URL or a
-placeholder URL."""
+src and alt are strings; figure caption is an inline array. Emit a link when its URL is visible or
+explicitly supplied alongside the matching text in trusted PDF evidence; otherwise emit its label
+as ordinary text. Never emit an empty URL or a placeholder URL."""
 
 
 class VisionError(RuntimeError):

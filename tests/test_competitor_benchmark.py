@@ -16,8 +16,8 @@ def test_competitor_benchmark_artifacts_are_reproducible() -> None:
     scorer = _scorer()
     calculated = scorer.calculate()
     directory = Path(__file__).parents[1] / "benchmarks" / "competitors"
-    assert calculated == json.loads((directory / "results.json").read_text())
-    assert scorer.report(calculated) == (directory / "REPORT.md").read_text()
+    assert calculated == json.loads((directory / "results.json").read_text(encoding="utf-8"))
+    assert scorer.report(calculated) == (directory / "REPORT.md").read_text(encoding="utf-8")
 
 
 def test_failed_or_missing_outputs_are_not_scored_as_zero() -> None:

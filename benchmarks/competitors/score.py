@@ -41,13 +41,16 @@ def ast_kinds(path: Path) -> set[str]:
             for child in value:
                 visit(child)
 
-    visit(json.loads(path.read_text()))
+    visit(json.loads(path.read_text(encoding="utf-8")))
     return result - GENERIC_KINDS
 
 
 def calculate() -> dict[str, Any]:
-    runs = json.loads((ROOT / "runs.json").read_text())
-    fixtures = [item["id"] for item in json.loads((ROOT / "fixtures.json").read_text())["fixtures"]]
+    runs = json.loads((ROOT / "runs.json").read_text(encoding="utf-8"))
+    fixtures = [
+        item["id"]
+        for item in json.loads((ROOT / "fixtures.json").read_text(encoding="utf-8"))["fixtures"]
+    ]
     tools = []
     for tool in runs["tools"]:
         samples = []
@@ -57,7 +60,8 @@ def calculate() -> dict[str, Any]:
             output = ROOT / "raw" / tool["id"] / f"{fixture}.plain.txt"
             truth = ROOT / "raw" / "truth" / f"{fixture}.plain.txt"
             if record["status"] == "complete" and output.is_file() and output.stat().st_size:
-                expected, actual = truth.read_text(), output.read_text()
+                expected = truth.read_text(encoding="utf-8")
+                actual = output.read_text(encoding="utf-8")
                 sample["character"] = round(ratio(expected, actual), 6)
                 sample["word"] = round(ratio(expected, actual, words=True), 6)
                 candidate_ast = ROOT / "raw" / tool["id"] / f"{fixture}.ast.json"
@@ -195,11 +199,11 @@ def main() -> int:
     results_text = json.dumps(results, indent=2, sort_keys=True) + "\n"
     report_text = report(results)
     if args.write:
-        (ROOT / "results.json").write_text(results_text)
-        (ROOT / "REPORT.md").write_text(report_text)
+        (ROOT / "results.json").write_text(results_text, encoding="utf-8")
+        (ROOT / "REPORT.md").write_text(report_text, encoding="utf-8")
         return 0
-    expected_results = (ROOT / "results.json").read_text()
-    expected_report = (ROOT / "REPORT.md").read_text()
+    expected_results = (ROOT / "results.json").read_text(encoding="utf-8")
+    expected_report = (ROOT / "REPORT.md").read_text(encoding="utf-8")
     if results_text != expected_results or report_text != expected_report:
         raise SystemExit("benchmark artifacts are stale; run score.py --write")
     print("benchmark artifacts are reproducible")

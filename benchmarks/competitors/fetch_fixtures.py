@@ -14,7 +14,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("directory", type=Path)
     args = parser.parse_args()
-    manifest = json.loads((Path(__file__).parent / "fixtures.json").read_text())
+    manifest = json.loads((Path(__file__).parent / "fixtures.json").read_text(encoding="utf-8"))
     args.directory.mkdir(parents=True, exist_ok=True)
     for fixture in manifest["fixtures"]:
         for kind, suffix in (("pdf", ".pdf"), ("source", ".crv")):

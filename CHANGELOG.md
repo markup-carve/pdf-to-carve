@@ -31,7 +31,7 @@
   bounding-box provenance.
 - Preserve and remap deterministic and visual provenance through accepted hybrid
   structural repairs, and publish inference diagnostics separately from errors.
-- Add a generated six-document PDF regression corpus with hand-checked Carve
+- Add a generated seven-document PDF regression corpus with hand-checked Carve
   answer keys and a repeatable 100-page performance profile.
 
 ### Output

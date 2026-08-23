@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,13 @@ class JsonCache:
             with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
                 json.dump(value, handle, ensure_ascii=False, allow_nan=False)
                 handle.write("\n")
-            temporary.replace(target)
+            for attempt in range(10):
+                try:
+                    temporary.replace(target)
+                    break
+                except PermissionError:
+                    if attempt == 9:
+                        raise
+                    time.sleep(0.01 * (attempt + 1))
         finally:
             temporary.unlink(missing_ok=True)

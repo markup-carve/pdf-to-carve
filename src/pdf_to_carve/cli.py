@@ -99,6 +99,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         for diagnostic in result.diagnostics:
             print(f"pdf-to-carve: {diagnostic}", file=sys.stderr)
+        for warning in result.warnings:
+            print(f"pdf-to-carve: warning: {warning}", file=sys.stderr)
         return 2 if result.diagnostics else 0
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"pdf-to-carve: error: {exc}", file=sys.stderr)

@@ -58,6 +58,7 @@ class ConversionResult:
     document: Document
     mode: str
     diagnostics: tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()
 
 
 def _baseline_prompt(document: dict[str, Any], max_chars: int = 60_000) -> str:
@@ -74,6 +75,16 @@ def _baseline_prompt(document: dict[str, Any], max_chars: int = 60_000) -> str:
             break
         envelope = candidate
     return json.dumps(envelope, ensure_ascii=False, separators=(",", ":"))
+
+
+def _document_warnings(document: Document) -> tuple[str, ...]:
+    warnings = list(document.diagnostics)
+    warnings.extend(
+        f"block {entry.block}: {warning}"
+        for entry in document.provenance
+        for warning in entry.warnings
+    )
+    return tuple(warnings)
 
 
 def _render_pages(
@@ -234,16 +245,20 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
                     cache.put(key, raw)
             if selected == "hybrid" and baseline is not None:
                 raw = reconcile_hybrid(baseline, raw)
-    if options.assets_dir and is_pdf:
+    if (
+        options.assets_dir
+        and is_pdf
+        and not (selected == "text" and options.pdf_backend == "pdfium")
+    ):
         extract_images(path, options.assets_dir)
     document = Document.from_json(raw)
     source = to_carve(document)
     diagnostics = _official_check(source, options.carve_command) if options.carve_command else ()
-    return ConversionResult(source, document, selected, diagnostics)
+    return ConversionResult(source, document, selected, diagnostics, _document_warnings(document))
 
 
 def convert_json(path: Path, carve_command: str | None = None) -> ConversionResult:
     document = Document.from_json(json.loads(path.read_text(encoding="utf-8")))
     source = to_carve(document)
     diagnostics = _official_check(source, carve_command) if carve_command else ()
-    return ConversionResult(source, document, "json", diagnostics)
+    return ConversionResult(source, document, "json", diagnostics, _document_warnings(document))

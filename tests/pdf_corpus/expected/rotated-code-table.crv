@@ -1,0 +1,13 @@
+# Mixed structures
+
+Rotated margin label
+
+```python
+def greet(name):
+return f'Hello {name}'
+```
+
+|= Region |=> Revenue |
+| North | 1,240 |
+| South | 980 |
+^ Table 1: Revenue

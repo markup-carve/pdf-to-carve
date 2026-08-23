@@ -11,7 +11,8 @@
     "author": {"type": "string", "minLength": 1},
     "language": {"type": "string", "minLength": 1},
     "blocks": {"type": "array", "items": {"$ref": "#/$defs/block"}},
-    "provenance": {"type": "array", "items": {"$ref": "#/$defs/provenance"}}
+    "provenance": {"type": "array", "items": {"$ref": "#/$defs/provenance"}},
+    "diagnostics": {"type": "array", "items": {"type": "string", "minLength": 1}}
   },
   "$defs": {
     "provenance": {
@@ -130,7 +131,8 @@
           "required": ["type", "content"],
           "properties": {
             "type": {"const": "paragraph"},
-            "content": {"$ref": "#/$defs/inlines"}
+            "content": {"$ref": "#/$defs/inlines"},
+            "id": {"type": "string", "minLength": 1}
           }
         },
         {

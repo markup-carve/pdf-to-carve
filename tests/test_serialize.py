@@ -187,6 +187,22 @@ def test_serializes_native_semantic_nodes() -> None:
     )
 
 
+def test_paragraph_id_emits_a_block_attribute_anchor() -> None:
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {
+                    "type": "paragraph",
+                    "id": "page-2",
+                    "content": [{"type": "text", "text": "Destination"}],
+                }
+            ],
+        }
+    )
+    assert to_carve(document) == "{#page-2}\nDestination\n"
+
+
 def test_table_escapes_pipes_inside_nested_inline_nodes() -> None:
     text = [{"type": "text", "text": "a|b"}]
     document = Document.from_json(

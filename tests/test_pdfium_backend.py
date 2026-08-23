@@ -299,6 +299,46 @@ def test_pdfium_resolves_internal_goto_links_to_target_heading(tmp_path: Path) -
     assert details["content"][0]["text"] == "Details"
 
 
+def test_pdfium_anchors_internal_destination_without_a_heading(tmp_path: Path) -> None:
+    pdf = tmp_path / "internal-paragraph.pdf"
+    document = pymupdf.open()
+    first = document.new_page(width=400, height=300)
+    first.insert_text((20, 70), "Read destination", fontsize=10)
+    second = document.new_page(width=400, height=300)
+    second.insert_text((20, 70), "Paragraph destination", fontsize=10)
+    document[0].insert_link(
+        {
+            "kind": pymupdf.LINK_GOTO,
+            "from": pymupdf.Rect(20, 58, 110, 74),
+            "page": 1,
+            "to": pymupdf.Point(20, 70),
+        }
+    )
+    document.save(pdf)
+    document.close()
+
+    blocks = extract_text_pdf(pdf)["blocks"]
+    assert blocks[0]["content"][0]["url"] == "#page-2"
+    assert blocks[2]["id"] == "page-2"
+
+
+def test_pdfium_merges_repeated_table_header_across_page_break(tmp_path: Path) -> None:
+    pdf = tmp_path / "continued-table.pdf"
+    document = pymupdf.open()
+    for values in (("A", "1", "B", "2"), ("C", "3", "D", "4")):
+        page = document.new_page(width=400, height=300)
+        for y, row in ((70, ("Name", "Value")), (90, values[:2]), (110, values[2:])):
+            page.insert_text((20, y), row[0], fontsize=10)
+            page.insert_text((220, y), row[1], fontsize=10)
+    document.save(pdf)
+    document.close()
+
+    raw = extract_text_pdf(pdf)
+    tables = [block for block in raw["blocks"] if block["type"] == "table"]
+    assert len(tables) == 1 and len(tables[0]["rows"]) == 4
+    assert "merged 1 table continuation" in " ".join(raw["diagnostics"])
+
+
 def test_pdfium_infers_code_language_only_from_strong_syntax(tmp_path: Path) -> None:
     pdf = tmp_path / "code.pdf"
     document = pymupdf.open()

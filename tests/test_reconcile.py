@@ -64,3 +64,34 @@ def test_hybrid_requires_confident_geometry_for_semantic_diagram_upgrade() -> No
         "provenance": [{"block": 0, "page": 1, "bbox": [0, 0, 100, 40], "confidence": 0.9}],
     }
     assert reconcile_hybrid(baseline, with_evidence)["blocks"][0]["language"] == "mermaid"
+
+
+def test_hybrid_remaps_and_combines_provenance_after_structural_repair() -> None:
+    baseline = {
+        "version": 1,
+        "blocks": [
+            {"type": "paragraph", "content": text("One")},
+            {"type": "paragraph", "content": text("Two")},
+            {"type": "paragraph", "content": text("After")},
+        ],
+        "provenance": [
+            {"block": 0, "page": 1, "warnings": ["first evidence"]},
+            {"block": 1, "page": 1},
+            {"block": 2, "page": 2, "warnings": ["after evidence"]},
+        ],
+    }
+    visual = {
+        "version": 1,
+        "blocks": [
+            {
+                "type": "list",
+                "items": [{"content": text("One")}, {"content": text("Two")}],
+            }
+        ],
+        "provenance": [{"block": 0, "page": 1, "bbox": [0, 0, 100, 40], "confidence": 0.95}],
+    }
+    result = reconcile_hybrid(baseline, visual)
+    assert [block["type"] for block in result["blocks"]] == ["list", "paragraph"]
+    assert [entry["block"] for entry in result["provenance"]] == [0, 1]
+    assert result["provenance"][1]["page"] == 2
+    assert "first evidence" in result["provenance"][0]["warnings"]

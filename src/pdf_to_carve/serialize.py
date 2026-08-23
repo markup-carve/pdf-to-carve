@@ -127,7 +127,8 @@ def _block(block: Block) -> str:
         heading = f"{'#' * d['level']} {_inline(d['content'])}"
         return f"{{#{d['id']}}}\n{heading}" if "id" in d else heading
     if block.type == "paragraph":
-        return _escape_block_start(_inline(d["content"]))
+        paragraph = _escape_block_start(_inline(d["content"]))
+        return f"{{#{d['id']}}}\n{paragraph}" if "id" in d else paragraph
     if block.type == "list":
         lines = []
         for index, item in enumerate(d["items"]):

@@ -17,7 +17,16 @@ def _text(value: Any) -> str:
         return ""
     if isinstance(value.get("text"), str):
         return str(value.get("text", ""))
-    fields = ("content", "children", "headers", "rows", "title", "caption", "attribution")
+    fields = (
+        "content",
+        "children",
+        "headers",
+        "rows",
+        "items",
+        "title",
+        "caption",
+        "attribution",
+    )
     return " ".join(_text(value[field]) for field in fields if field in value)
 
 
@@ -79,7 +88,7 @@ def reconcile_hybrid(
     base_blocks = baseline.get("blocks", [])
     visual_blocks = visual.get("blocks", [])
     provenance = _provenance_by_block(visual)
-    mappings: list[tuple[int, int, dict[str, Any]]] = []
+    mappings: list[tuple[int, int, dict[str, Any], int]] = []
     cursor = 0
     for visual_index, candidate in enumerate(visual_blocks):
         candidate_compact = _compact(candidate)
@@ -104,17 +113,60 @@ def reconcile_hybrid(
             if match:
                 break
         if match:
-            mappings.append(match)
+            mappings.append((*match, visual_index))
             cursor = match[1]
 
     blocks = []
+    remapped_provenance = []
+    baseline_provenance = _provenance_by_block(baseline)
     cursor = 0
-    for start, end, repair in mappings:
-        blocks.extend(copy.deepcopy(base_blocks[cursor:start]))
+
+    def append_baseline(start: int, end: int) -> None:
+        for baseline_index in range(start, end):
+            output_index = len(blocks)
+            blocks.append(copy.deepcopy(base_blocks[baseline_index]))
+            if entry := baseline_provenance.get(baseline_index):
+                remapped_provenance.append({**copy.deepcopy(entry), "block": output_index})
+
+    for start, end, repair, visual_index in mappings:
+        append_baseline(cursor, start)
+        output_index = len(blocks)
         blocks.append(repair)
+        entry = copy.deepcopy(provenance.get(visual_index, {}))
+        inherited_warnings = [
+            warning
+            for baseline_index in range(start, end)
+            for warning in baseline_provenance.get(baseline_index, {}).get("warnings", [])
+        ]
+        warnings = list(dict.fromkeys([*inherited_warnings, *entry.get("warnings", [])]))
+        warnings.append("hybrid visual repair accepted after deterministic evidence check")
+        entry.update(
+            {
+                "block": output_index,
+                "page": entry.get("page", baseline_provenance.get(start, {}).get("page", 1)),
+                "warnings": warnings,
+            }
+        )
+        remapped_provenance.append(entry)
         cursor = end
-    blocks.extend(copy.deepcopy(base_blocks[cursor:]))
-    result = {key: copy.deepcopy(value) for key, value in baseline.items() if key != "blocks"}
+    append_baseline(cursor, len(base_blocks))
+    result = {
+        key: copy.deepcopy(value)
+        for key, value in baseline.items()
+        if key not in {"blocks", "provenance", "diagnostics"}
+    }
     result["version"] = 1
     result["blocks"] = blocks
+    if remapped_provenance:
+        result["provenance"] = remapped_provenance
+    diagnostics = list(baseline.get("diagnostics", []))
+    rejected = len(visual_blocks) - len(mappings)
+    if rejected:
+        diagnostics.append(
+            f"hybrid rejected {rejected} visual block(s) that lacked matching text evidence"
+        )
+    if mappings:
+        diagnostics.append(f"hybrid accepted {len(mappings)} evidence-preserving repair(s)")
+    if diagnostics:
+        result["diagnostics"] = diagnostics
     return result

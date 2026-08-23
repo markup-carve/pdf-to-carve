@@ -13,6 +13,15 @@ def test_document_round_trips_public_json() -> None:
     assert document_to_json(Document.from_json(raw)) == raw
 
 
+def test_document_round_trips_inference_diagnostics() -> None:
+    raw = {
+        "version": 1,
+        "blocks": [],
+        "diagnostics": ["page 1: two-column reading order inferred"],
+    }
+    assert document_to_json(Document.from_json(raw)) == raw
+
+
 @pytest.mark.parametrize(
     ("raw", "message"),
     [

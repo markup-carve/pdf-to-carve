@@ -210,55 +210,64 @@ def _objects(page: pdfium.PdfPage) -> list[dict[str, Any]]:
 
 
 def _column_major_order(items: list[dict[str, Any]], page_width: float) -> list[dict[str, Any]]:
-    """Use column-major order only when two substantial text columns are evident."""
-    gutter_left = page_width * 0.47
-    gutter_right = page_width * 0.53
-    minimum_width = page_width * 0.18
-    left_evidence = [
-        item
-        for item in items
-        if item["bbox"][2] <= gutter_left and item["bbox"][2] - item["bbox"][0] >= minimum_width
-    ]
-    right_evidence = [
-        item
-        for item in items
-        if item["bbox"][0] >= gutter_right and item["bbox"][2] - item["bbox"][0] >= minimum_width
-    ]
-    if len(left_evidence) < 2 or len(right_evidence) < 2:
-        return items
-    band_top = max(
-        min(item["bbox"][1] for item in left_evidence),
-        min(item["bbox"][1] for item in right_evidence),
-    )
-    band_bottom = min(
-        max(item["bbox"][3] for item in left_evidence),
-        max(item["bbox"][3] for item in right_evidence),
-    )
-    if band_bottom <= band_top:
-        return items
-    before = [item for item in items if item["bbox"][3] < band_top]
-    left = [
-        item
-        for item in items
-        if item["bbox"][1] <= band_bottom and item["bbox"][2] <= gutter_left and item not in before
-    ]
-    right = [
-        item
-        for item in items
-        if item["bbox"][1] <= band_bottom and item["bbox"][0] >= gutter_right and item not in before
-    ]
-    used = {id(item) for item in before + left + right}
-    after = [item for item in items if id(item) not in used]
+    """Use column-major order only when two or three substantial columns are evident."""
 
     def key(item: dict[str, Any]) -> tuple[float, float]:
         return item["bbox"][1], item["bbox"][0]
 
-    return (
-        sorted(before, key=key)
-        + sorted(left, key=key)
-        + sorted(right, key=key)
-        + sorted(after, key=key)
+    def attempt(
+        zones: list[tuple[float, float]], minimum_width: float
+    ) -> list[dict[str, Any]] | None:
+        evidence = [
+            [
+                item
+                for item in items
+                if item["bbox"][0] >= left
+                and item["bbox"][2] <= right
+                and item["bbox"][2] - item["bbox"][0] >= minimum_width
+            ]
+            for left, right in zones
+        ]
+        if any(len(column) < 2 for column in evidence):
+            return None
+        band_top = max(min(item["bbox"][1] for item in column) for column in evidence)
+        band_bottom = min(max(item["bbox"][3] for item in column) for column in evidence)
+        if band_bottom <= band_top:
+            return None
+        before = [item for item in items if item["bbox"][3] < band_top]
+        columns = []
+        for column_number, (left, right) in enumerate(zones):
+            column = [
+                item
+                for item in items
+                if item["bbox"][1] <= band_bottom
+                and item["bbox"][0] >= left
+                and item["bbox"][2] <= right
+                and item not in before
+            ]
+            for item in column:
+                item["_column"] = column_number
+            columns.append(column)
+        used = {id(item) for item in before + [item for column in columns for item in column]}
+        after = [item for item in items if id(item) not in used]
+        return (
+            sorted(before, key=key)
+            + [item for column in columns for item in sorted(column, key=key)]
+            + sorted(after, key=key)
+        )
+
+    three = attempt(
+        [
+            (0, page_width * 0.31),
+            (page_width * 0.345, page_width * 0.655),
+            (page_width * 0.69, page_width),
+        ],
+        page_width * 0.12,
     )
+    if three is not None:
+        return three
+    two = attempt([(0, page_width * 0.47), (page_width * 0.53, page_width)], page_width * 0.18)
+    return two if two is not None else items
 
 
 def _visual_rows(items: list[dict[str, Any]], body_size: float) -> list[list[dict[str, Any]]]:
@@ -303,17 +312,33 @@ def _repeated_furniture(
 
 
 def _footnote_definitions(
-    rows: list[list[dict[str, Any]]], page_height: float
+    rows: list[list[dict[str, Any]]], page_height: float, body_size: float
 ) -> tuple[dict[str, str], set[int]]:
     definitions = {}
     consumed = set()
-    for row in rows:
+    for index, row in enumerate(rows):
         if len(row) != 1 or row[0]["bbox"][1] < page_height * 0.72:
             continue
         match = re.match(r"^(\d{1,3})[.)]?\s+(.{3,})$", row[0]["text"].strip())
         if match:
-            definitions[match.group(1)] = match.group(2).strip()
+            parts = [match.group(2).strip()]
             consumed.add(id(row))
+            previous = row[0]
+            for following_row in rows[index + 1 :]:
+                if len(following_row) != 1:
+                    break
+                following = following_row[0]
+                gap = following["bbox"][1] - previous["bbox"][3]
+                if (
+                    gap < 0
+                    or gap > body_size * 0.8
+                    or abs(following["bbox"][0] - row[0]["bbox"][0]) > body_size * 2
+                ):
+                    break
+                parts.append(following["text"].strip())
+                consumed.add(id(following_row))
+                previous = following
+            definitions[match.group(1)] = " ".join(parts)
     return definitions, consumed
 
 
@@ -418,7 +443,7 @@ def _is_simple_table(rows: list[list[dict[str, Any]]], start: int, body_size: fl
     while end < len(rows) and len(rows[end]) == width:
         positions = [item["bbox"][0] for item in rows[end]]
         if any(
-            abs(left - expected) > body_size * 2
+            abs(left - expected) > body_size * 2.5
             for left, expected in zip(positions, reference, strict=True)
         ):
             break
@@ -521,7 +546,10 @@ def _vector_figure_regions(
 
 
 def _raster_figure_regions(
-    page: pdfium.PdfPage, output_dir: Path | None, page_number: int
+    page: pdfium.PdfPage,
+    output_dir: Path | None,
+    page_number: int,
+    assets: dict[str, Path],
 ) -> list[dict[str, Any]]:
     """Extract each placed raster object together with its document position."""
     if output_dir is None:
@@ -538,8 +566,12 @@ def _raster_figure_regions(
             image = bitmap.to_pil().convert("RGB")
         finally:
             bitmap.close()
-        target = output_dir / f"page-{page_number}-raster-{figure_number}.png"
-        image.save(target)
+        digest = hashlib.sha256(image.tobytes()).hexdigest()
+        target = assets.get(digest)
+        if target is None:
+            target = output_dir / f"page-{page_number}-raster-{figure_number}.png"
+            image.save(target)
+            assets[digest] = target
         result.append(
             {
                 "bbox": [left, height - top, right, height - bottom],
@@ -602,12 +634,106 @@ def _infer_code_language(text: str) -> str | None:
     return None
 
 
+def _contains_inline(value: Any, kind: str) -> bool:
+    if isinstance(value, list):
+        return any(_contains_inline(item, kind) for item in value)
+    if not isinstance(value, dict):
+        return False
+    return value.get("type") == kind or any(_contains_inline(item, kind) for item in value.values())
+
+
+def _contains_internal_link(value: Any) -> bool:
+    if isinstance(value, list):
+        return any(_contains_internal_link(item) for item in value)
+    if not isinstance(value, dict):
+        return False
+    return bool(re.fullmatch(r"#page-\d+", value.get("url", ""))) or any(
+        _contains_internal_link(item) for item in value.values()
+    )
+
+
+def _inference_provenance(
+    blocks: list[dict[str, Any]], first_page: int = 1
+) -> list[dict[str, Any]]:
+    result = []
+    page = first_page
+    for index, block in enumerate(blocks):
+        if block["type"] == "page_break":
+            page += 1
+            continue
+        warnings = []
+        if block["type"] == "code_block" and block.get("language"):
+            warnings.append("code language inferred from strongly identifying syntax")
+        if block["type"] == "table":
+            if any(value != "left" for value in block.get("alignments", [])):
+                warnings.append("table alignment inferred from stable visual edges")
+            if block.get("caption"):
+                warnings.append("table caption associated by proximity and explicit label")
+        if block["type"] == "figure":
+            kind = "vector crop" if "-vector-" in block["src"] else "placed raster object"
+            warnings.append(f"figure preserved from {kind}")
+            if block.get("caption"):
+                warnings.append("figure caption associated by proximity and explicit styling")
+        if _contains_inline(block, "footnote"):
+            warnings.append("footnote paired from superscript reference and bottom definition")
+        if _contains_internal_link(block):
+            warnings.append("internal link resolved to a generated page heading anchor")
+        if block.get("id", "").startswith("page-"):
+            warnings.append("page heading anchor generated for an internal PDF destination")
+        if warnings:
+            result.append(
+                {
+                    "block": index,
+                    "page": page,
+                    "confidence": 0.9,
+                    "warnings": warnings,
+                }
+            )
+    return result
+
+
+def _merge_continued_tables(blocks: list[dict[str, Any]]) -> int:
+    merged = 0
+    index = 0
+    while index + 2 < len(blocks):
+        first, boundary, following = blocks[index : index + 3]
+        if (
+            first["type"] == following["type"] == "table"
+            and boundary["type"] == "page_break"
+            and first["headers"] == following["headers"]
+            and first.get("alignments") == following.get("alignments")
+        ):
+            first["rows"].extend(following["rows"])
+            if "caption" not in first and "caption" in following:
+                first["caption"] = following["caption"]
+            del blocks[index + 1 : index + 3]
+            merged += 1
+            continue
+        index += 1
+    return merged
+
+
+def _anchor_unheaded_target_pages(
+    blocks: list[dict[str, Any]], target_pages: set[int], anchored_pages: set[int], first_page: int
+) -> None:
+    page = first_page
+    for block in blocks:
+        if block["type"] == "page_break":
+            page += 1
+            continue
+        if page in target_pages and page not in anchored_pages and block["type"] == "paragraph":
+            block["id"] = f"page-{page}"
+            anchored_pages.add(page)
+
+
 def _unordered_list_height(
     rows: list[list[dict[str, Any]]], start: int, body_size: float, left_margin: float
 ) -> int:
     if len(rows[start]) != 1:
         return 0
     first = rows[start][0]
+    if first.get("_column", 0) > 0:
+        return 0
     if first["bbox"][0] - left_margin < body_size or first["size"] > body_size * 1.12:
         return 0
     end = start + 1
@@ -634,18 +760,31 @@ def extract_text_pdf(
     try:
         pages = list(_range(document, start, end))
         objects = [_objects(document[number]) for number in pages]
-        sizes = [item["size"] for page in objects for item in page]
+        sizes = [
+            item["size"]
+            for index, page in enumerate(objects)
+            for item in page
+            if document[pages[index]].get_height() * 0.12
+            <= (item["bbox"][1] + item["bbox"][3]) / 2
+            <= document[pages[index]].get_height() * 0.88
+        ]
         body_size = statistics.median(sizes) if sizes else 11.0
         blocks = []
         all_rows = [_visual_rows(page, body_size) for page in objects]
         page_heights = [document[number].get_height() for number in pages]
         repeated_furniture = _repeated_furniture(all_rows, page_heights)
+        column_pages = {
+            pages[index] + 1: max(item.get("_column", 0) for item in page) + 1
+            for index, page in enumerate(objects)
+            if any("_column" in item for item in page)
+        }
+        raster_assets: dict[str, Path] = {}
         figure_regions = [
             sorted(
                 _vector_figure_regions(
                     document[number], objects[index], body_size, assets_dir, number + 1
                 )
-                + _raster_figure_regions(document[number], assets_dir, number + 1),
+                + _raster_figure_regions(document[number], assets_dir, number + 1, raster_assets),
                 key=lambda region: (region["bbox"][1], region["bbox"][0]),
             )
             for index, number in enumerate(pages)
@@ -673,7 +812,9 @@ def extract_text_pdf(
             )
             index = 0
             emitted_figures: set[int] = set()
-            footnotes, footnote_rows = _footnote_definitions(rows, page_heights[page_index])
+            footnotes, footnote_rows = _footnote_definitions(
+                rows, page_heights[page_index], body_size
+            )
             caption_rows = _attach_figure_captions(figure_regions[page_index], rows, body_size)
             while index < len(rows):
                 row = rows[index]
@@ -836,8 +977,26 @@ def extract_text_pdf(
             for figure_index, region in enumerate(figure_regions[page_index]):
                 if figure_index not in emitted_figures:
                     blocks.append(region["block"])
+        _anchor_unheaded_target_pages(blocks, target_pages, anchored_pages, pages[0] + 1)
+        merged_tables = _merge_continued_tables(blocks)
         metadata = document.get_metadata_dict()
         result: dict[str, Any] = {"version": 1, "blocks": blocks}
+        provenance = _inference_provenance(blocks, pages[0] + 1)
+        if provenance:
+            result["provenance"] = provenance
+        diagnostics = []
+        if repeated_furniture:
+            diagnostics.append(
+                f"suppressed {len(repeated_furniture)} repeated header/footer pattern(s)"
+            )
+        diagnostics.extend(
+            f"page {page}: {count}-column reading order inferred from stable gutters"
+            for page, count in sorted(column_pages.items())
+        )
+        if merged_tables:
+            diagnostics.append(f"merged {merged_tables} table continuation(s) across page breaks")
+        if diagnostics:
+            result["diagnostics"] = diagnostics
         if metadata.get("Title", "").strip():
             result["title"] = metadata["Title"].strip()
         if metadata.get("Author", "").strip():

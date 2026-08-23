@@ -172,8 +172,10 @@ class Block:
             if "id" in obj:
                 data["id"] = _string(obj["id"], f"{path}.id", empty=False)
         elif kind == "paragraph":
-            _keys(obj, {"type", "content"}, path)
+            _keys(obj, {"type", "content", "id"}, path)
             data = {"content": _inlines(obj.get("content"), f"{path}.content")}
+            if "id" in obj:
+                data["id"] = _string(obj["id"], f"{path}.id", empty=False)
         elif kind == "list":
             _keys(obj, {"type", "ordered", "start", "items"}, path)
             ordered = obj.get("ordered", False)
@@ -326,13 +328,14 @@ class Document:
     author: str | None = None
     language: str | None = None
     provenance: tuple[Provenance, ...] = ()
+    diagnostics: tuple[str, ...] = ()
 
     @classmethod
     def from_json(cls, value: Any) -> Document:
         obj = _object(value, "document")
         _keys(
             obj,
-            {"version", "title", "author", "language", "blocks", "provenance"},
+            {"version", "title", "author", "language", "blocks", "provenance", "diagnostics"},
             "document",
         )
         if obj.get("version") != 1:
@@ -356,7 +359,14 @@ class Document:
         )
         if len({entry.block for entry in provenance}) != len(provenance):
             raise DocumentError("document.provenance must contain at most one entry per block")
-        return cls(blocks=blocks, provenance=provenance, **metadata)
+        raw_diagnostics = obj.get("diagnostics", [])
+        if not isinstance(raw_diagnostics, list):
+            raise DocumentError("document.diagnostics must be an array")
+        diagnostics = tuple(
+            _string(item, f"document.diagnostics[{i}]", empty=False)
+            for i, item in enumerate(raw_diagnostics)
+        )
+        return cls(blocks=blocks, provenance=provenance, diagnostics=diagnostics, **metadata)
 
 
 def document_to_json(document: Document) -> dict[str, Any]:
@@ -425,4 +435,6 @@ def document_to_json(document: Document) -> dict[str, Any]:
             if item.evidence is not None:
                 entry["evidence"] = item.evidence
             result["provenance"].append(entry)
+    if document.diagnostics:
+        result["diagnostics"] = list(document.diagnostics)
     return result

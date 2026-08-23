@@ -17,12 +17,20 @@
   figure and table captions, and suppress repeated page furniture.
 - Recover strong two-column reading order, internal page links, rotated text,
   and numeric superscript footnotes when their geometric evidence is complete.
+- Extend strong-gutter reading order to three columns, join multiline footnote
+  definitions, reuse identical raster assets across placements, anchor internal
+  destinations without headings, and merge repeated table continuations across
+  page breaks.
 - Supply PDF link destinations to hybrid extraction and strengthen visual
   guidance for code indentation, decoration, quotations, and diagrams.
 - Reconcile hybrid repairs against deterministic text-mode output: wording
   changes are rejected, code repairs may change whitespace only, existing table
   alignment and asset references win, and semantic diagrams require confident
   bounding-box provenance.
+- Preserve and remap deterministic and visual provenance through accepted hybrid
+  structural repairs, and publish inference diagnostics separately from errors.
+- Add a generated six-document PDF regression corpus with hand-checked Carve
+  answer keys and a repeatable 100-page performance profile.
 
 ### Output
 

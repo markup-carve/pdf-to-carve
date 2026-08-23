@@ -1,0 +1,452 @@
+{
+  "version": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "level": 1,
+      "content": [
+        {
+          "type": "text",
+          "text": "Markdown Extraction Test"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "This document checks whether a PDF extractor can recover ordinary Markdown structure without relying on complex Carve features."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "Text can be "
+        },
+        {
+          "type": "strong",
+          "children": [
+            {
+              "type": "text",
+              "text": "bold"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "emphasis",
+          "children": [
+            {
+              "type": "text",
+              "text": "italic"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", or "
+        },
+        {
+          "type": "strong",
+          "children": [
+            {
+              "type": "emphasis",
+              "children": [
+                {
+                  "type": "text",
+                  "text": "bold and italic"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ". It can also contain a "
+        },
+        {
+          "type": "link",
+          "children": [
+            {
+              "type": "text",
+              "text": "visible link"
+            }
+          ],
+          "url": "https://example.com/docs"
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "The extended formatting line contains "
+        },
+        {
+          "type": "underline",
+          "children": [
+            {
+              "type": "text",
+              "text": "underlined text"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", "
+        },
+        {
+          "type": "highlight",
+          "children": [
+            {
+              "type": "text",
+              "text": "highlighted text"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", superscript"
+        },
+        {
+          "type": "superscript",
+          "children": [
+            {
+              "type": "text",
+              "text": "note"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": ", and subscript"
+        },
+        {
+          "type": "subscript",
+          "children": [
+            {
+              "type": "text",
+              "text": "index"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Paragraphs"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "This is the first paragraph. It wraps across more than one visual line in the PDF, but it should remain one paragraph in the extracted Markdown."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "This is a separate paragraph. The vertical space above it should prevent both paragraphs from being merged."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Lists"
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        {
+          "content": [
+            {
+              "type": "text",
+              "text": "First unordered item"
+            }
+          ]
+        },
+        {
+          "content": [
+            {
+              "type": "text",
+              "text": "Second unordered item"
+            }
+          ]
+        },
+        {
+          "content": [
+            {
+              "type": "text",
+              "text": "Third unordered item"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        {
+          "content": [
+            {
+              "type": "text",
+              "text": "First ordered item"
+            }
+          ]
+        },
+        {
+          "content": [
+            {
+              "type": "text",
+              "text": "Second ordered item"
+            }
+          ]
+        },
+        {
+          "content": [
+            {
+              "type": "text",
+              "text": "Third ordered item"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Blockquote"
+        }
+      ]
+    },
+    {
+      "type": "quote",
+      "content": [
+        {
+          "type": "text",
+          "text": "Good extraction preserves the quotation as a blockquote instead of flattening it into an ordinary paragraph."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Code"
+        }
+      ]
+    },
+    {
+      "type": "code_block",
+      "text": "function greet(string $name): string {\n    return \"Hello, {$name}!\";\n}",
+      "language": "php"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Simple table"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "headers": [
+        [
+          {
+            "type": "text",
+            "text": "Region"
+          }
+        ],
+        [
+          {
+            "type": "text",
+            "text": "Revenue"
+          }
+        ],
+        [
+          {
+            "type": "text",
+            "text": "Growth"
+          }
+        ]
+      ],
+      "rows": [
+        [
+          [
+            {
+              "type": "text",
+              "text": "North"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "1,240"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "13.7%"
+            }
+          ]
+        ],
+        [
+          [
+            {
+              "type": "text",
+              "text": "South"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "980"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "4.1%"
+            }
+          ]
+        ],
+        [
+          [
+            {
+              "type": "text",
+              "text": "Total"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "2,220"
+            }
+          ],
+          [
+            {
+              "type": "text",
+              "text": "9.5%"
+            }
+          ]
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Literal punctuation"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "The next lines are literal text, not Markdown constructs:"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "# not a heading"
+        }
+      ]
+    },
+    {
+      "type": "page_break"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "- not a list item"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "*not emphasis*, _not emphasis_, [not a link], 2 | 3, C:\\docs\\file, and a `backtick."
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "content": [
+        {
+          "type": "text",
+          "text": "Image"
+        }
+      ]
+    },
+    {
+      "type": "code_block",
+      "text": "flowchart LR\n    Plan[Plan] --> Build[Build]\n    Build --> Ship[Ship]",
+      "language": "mermaid"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "The image above uses standard Markdown image syntax with useful alternative text."
+        }
+      ]
+    }
+  ]
+}

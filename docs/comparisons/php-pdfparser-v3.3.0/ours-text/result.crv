@@ -6,9 +6,9 @@ title: "Carve document"
 
 This document checks whether a PDF extractor can recover ordinary Markdown structure without relying on complex Carve features.
 
-Text can be *bold*, /italic/, or */bold and italic/*. It can also contain a [visible link](https://example.com/docs).
+Text can be {*bold*}, {/italic/}, or {*{/bold and italic/}*}. It can also contain a [visible link](https://example.com/docs).
 
-The extended formatting line contains _underlined text_, =highlighted text=, superscript{^note^}, and subscript{,index,}.
+The extended formatting line contains {_underlined text_}, {=highlighted text=}, superscript{^note^}, and subscript{,index,}.
 
 ## Paragraphs
 

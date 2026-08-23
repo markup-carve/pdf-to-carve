@@ -39,8 +39,14 @@ Our extraction:
 
 ```bash
 pdf-to-carve input.pdf --mode text --assets-dir ours-text/assets -o ours-text/result.crv
-carve --markdown ours-text/result.crv > ours-text/result.md
+python ../../../examples/render_markdown.py ours-text/result.crv
 ```
+
+Every `result.md` here is rendered by Carve's own Markdown writer through
+`carve-lang`, pinned in `pyproject.toml`, and `tests/test_example_snapshots.py`
+regenerates all four and fails when one stops matching its `.crv`. The step used
+to be an unversioned `carve --markdown`, which left the capability table below
+resting on whichever engine happened to be on the author's PATH.
 
 ## Result
 

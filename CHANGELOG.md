@@ -8,6 +8,8 @@
   reference exists, preventing ordinary numbered content from being dropped.
 - Make deterministic PDF table alignment override conflicting hybrid vision
   guesses, as required by the evidence-precedence policy.
+- Enforce the hybrid baseline prompt limit in UTF-8 bytes so non-ASCII PDF text
+  cannot exceed the provider context budget.
 
 ## 0.1.2 - 2026-08-23
 

@@ -53,7 +53,7 @@ def test_hybrid_baseline_prompt_is_bounded_valid_json() -> None:
             for _ in range(10)
         ],
     }
-    encoded = _baseline_prompt(document, max_chars=250)
+    encoded = _baseline_prompt(document, max_bytes=250)
     decoded = __import__("json").loads(encoded)
     assert decoded["truncated"] is True
     assert len(encoded) <= 250
@@ -68,18 +68,28 @@ def test_hybrid_baseline_prompt_bounds_oversized_metadata_and_marker() -> None:
             for _ in range(10)
         ],
     }
-    encoded = _baseline_prompt(document, max_chars=180)
+    encoded = _baseline_prompt(document, max_bytes=180)
     assert len(encoded) <= 180
     assert __import__("json").loads(encoded)["truncated"] is True
 
     metadata_only = _baseline_prompt(
-        {"version": 1, "title": "x" * 1_000, "blocks": []}, max_chars=80
+        {"version": 1, "title": "x" * 1_000, "blocks": []}, max_bytes=80
     )
     assert __import__("json").loads(metadata_only) == {
         "version": 1,
         "blocks": [],
         "truncated": True,
     }
+
+
+def test_hybrid_baseline_prompt_budget_counts_utf8_bytes() -> None:
+    document = {
+        "version": 1,
+        "blocks": [{"type": "paragraph", "content": [{"type": "text", "text": "é" * 100}]}],
+    }
+    encoded = _baseline_prompt(document, max_bytes=100)
+    assert len(encoded.encode("utf-8")) <= 100
+    assert __import__("json").loads(encoded)["truncated"] is True
 
 
 def test_hybrid_supplies_pdf_link_destinations_as_evidence(tmp_path: Path) -> None:

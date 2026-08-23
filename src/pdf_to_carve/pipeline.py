@@ -63,21 +63,24 @@ class ConversionResult:
     warnings: tuple[str, ...] = ()
 
 
-def _baseline_prompt(document: dict[str, Any], max_chars: int = 60_000) -> str:
+def _baseline_prompt(document: dict[str, Any], max_bytes: int = 60_000) -> str:
     """Return valid, bounded baseline JSON for visual repair guidance."""
+
+    def size(value: dict[str, Any]) -> int:
+        return len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+
     envelope: dict[str, Any] = {"version": document.get("version", 1), "blocks": []}
     truncated = False
     for key in ("title", "author", "language"):
         if key in document:
             candidate = {**envelope, key: document[key], "truncated": True}
-            if len(json.dumps(candidate, ensure_ascii=False, separators=(",", ":"))) <= max_chars:
+            if size(candidate) <= max_bytes:
                 envelope[key] = document[key]
             else:
                 truncated = True
     for block in document.get("blocks", []):
         candidate = {**envelope, "blocks": [*envelope["blocks"], block], "truncated": True}
-        encoded = json.dumps(candidate, ensure_ascii=False, separators=(",", ":"))
-        if len(encoded) > max_chars:
+        if size(candidate) > max_bytes:
             truncated = True
             break
         candidate.pop("truncated")
@@ -85,7 +88,7 @@ def _baseline_prompt(document: dict[str, Any], max_chars: int = 60_000) -> str:
     if truncated:
         envelope["truncated"] = True
     encoded = json.dumps(envelope, ensure_ascii=False, separators=(",", ":"))
-    if len(encoded) > max_chars:
+    if len(encoded.encode("utf-8")) > max_bytes:
         raise ValueError("baseline prompt budget is too small")
     return encoded
 

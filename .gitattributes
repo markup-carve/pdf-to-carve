@@ -1,2 +1,4 @@
 /benchmarks export-ignore
 /tests/test_competitor_benchmark.py export-ignore
+*.pdf binary
+*.png binary

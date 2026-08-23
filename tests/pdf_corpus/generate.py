@@ -10,7 +10,7 @@ ROOT = Path(__file__).parent
 def save(name: str, draw) -> None:
     document = pymupdf.open()
     draw(document)
-    document.save(ROOT / f"{name}.pdf")
+    document.save(ROOT / f"{name}.pdf", reproducible=True)
     document.close()
 
 

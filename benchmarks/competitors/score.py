@@ -97,7 +97,7 @@ def calculate() -> dict[str, Any]:
             result["mean_structure"] = round(statistics.mean(structured), 6) if structured else None
         tools.append(result)
     artifacts = {
-        str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+        path.relative_to(ROOT).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sorted((ROOT / "raw").rglob("*"))
         if path.is_file()
     }

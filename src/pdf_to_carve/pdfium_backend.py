@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import statistics
 from pathlib import Path
 from typing import Any
@@ -30,16 +31,25 @@ def _objects(page: pdfium.PdfPage) -> list[dict[str, Any]]:
             if not text.strip():
                 continue
             left, bottom, right, top = item.get_bounds()
+            font = item.get_font()
+            base_font = font.get_base_name().lower()
+            family = font.get_family_name().lower()
             fragments.append(
                 {
                     "text": text,
                     "size": float(item.get_font_size()),
                     "bbox": [left, height - top, right, height - bottom],
+                    "bold": any(name in base_font for name in ("bold", "heavy", "black")),
+                    "italic": any(name in base_font for name in ("italic", "oblique", "slanted")),
+                    "monospace": any(
+                        name in base_font or name in family for name in ("mono", "courier")
+                    ),
                 }
             )
         rows: list[dict[str, Any]] = []
         for item in fragments:
             if not rows:
+                item["runs"] = [dict(item)]
                 rows.append(item)
                 continue
             previous = rows[-1]
@@ -54,6 +64,7 @@ def _objects(page: pdfium.PdfPage) -> list[dict[str, Any]]:
             )
             if not same_line or not forward:
                 item["text"] = item["text"].strip()
+                item["runs"] = [dict(item)]
                 rows.append(item)
                 continue
             gap = max(0.0, new[0] - old[2])
@@ -64,7 +75,16 @@ def _objects(page: pdfium.PdfPage) -> list[dict[str, Any]]:
                 and gap > max(previous["size"], item["size"]) * 0.25
             ):
                 separator = " "
+            if (
+                not separator
+                and previous["text"].endswith((".", "?", "!", ":", ";"))
+                and item["text"][:1].isupper()
+            ):
+                separator = " "
             previous["text"] = previous["text"] + separator + item["text"]
+            run = dict(item)
+            run["text"] = separator + run["text"]
+            previous["runs"].append(run)
             previous["size"] = max(previous["size"], item["size"])
             previous["bbox"] = [
                 min(old[0], new[0]),
@@ -74,9 +94,124 @@ def _objects(page: pdfium.PdfPage) -> list[dict[str, Any]]:
             ]
         for row in rows:
             row["text"] = row["text"].strip()
+            if row["runs"]:
+                row["runs"][0]["text"] = row["runs"][0]["text"].lstrip()
+                row["runs"][-1]["text"] = row["runs"][-1]["text"].rstrip()
         return rows
     finally:
         text_page.close()
+
+
+def _visual_rows(items: list[dict[str, Any]], body_size: float) -> list[list[dict[str, Any]]]:
+    """Group separated objects that share a visual baseline."""
+    rows: list[list[dict[str, Any]]] = []
+    for item in items:
+        center = (item["bbox"][1] + item["bbox"][3]) / 2
+        if rows:
+            previous = rows[-1]
+            previous_center = sum(
+                (part["bbox"][1] + part["bbox"][3]) / 2 for part in previous
+            ) / len(previous)
+            if abs(center - previous_center) <= body_size * 0.45:
+                previous.append(item)
+                continue
+        rows.append([item])
+    return rows
+
+
+def _content(item: dict[str, Any], *, styled: bool = True) -> list[dict[str, Any]]:
+    if not styled:
+        return [{"type": "text", "text": item["text"].strip()}]
+    result: list[dict[str, Any]] = []
+    normal_centers = [
+        (run["bbox"][1] + run["bbox"][3]) / 2
+        for run in item["runs"]
+        if run["size"] >= item["size"] * 0.9 and len(run["text"].strip()) > 1
+    ]
+    baseline_center = statistics.median(normal_centers) if normal_centers else None
+    for run in item["runs"]:
+        text = run["text"]
+        if not text:
+            continue
+        node: dict[str, Any] = {"type": "text", "text": text}
+        if baseline_center is not None and run["size"] <= item["size"] * 0.8:
+            center = (run["bbox"][1] + run["bbox"][3]) / 2
+            kind = "superscript" if center < baseline_center else "subscript"
+            node = {"type": kind, "children": [node]}
+        elif run["italic"]:
+            node = {"type": "emphasis", "children": [node]}
+        if run["bold"]:
+            node = {"type": "strong", "children": [node]}
+        if result and result[-1]["type"] == node["type"] == "text":
+            result[-1]["text"] += node["text"]
+        else:
+            result.append(node)
+    return result
+
+
+def _join_lines(first: dict[str, Any], following: dict[str, Any]) -> None:
+    separator = "" if first["text"].endswith((" ", "-")) else " "
+    first["text"] += separator + following["text"]
+    runs = following["runs"]
+    if runs and separator:
+        runs[0] = {**runs[0], "text": separator + runs[0]["text"]}
+    first["runs"].extend(runs)
+    first["bbox"][2] = max(first["bbox"][2], following["bbox"][2])
+    first["bbox"][3] = following["bbox"][3]
+
+
+def _heading_levels(rows: list[list[dict[str, Any]]], body_size: float) -> dict[float, int]:
+    sizes = sorted(
+        {
+            round(row[0]["size"], 1)
+            for row in rows
+            if len(row) == 1 and row[0]["size"] >= body_size * 1.3 and len(row[0]["text"]) <= 180
+        },
+        reverse=True,
+    )
+    return {size: min(index + 1, 6) for index, size in enumerate(sizes)}
+
+
+def _is_simple_table(rows: list[list[dict[str, Any]]], start: int, body_size: float) -> int:
+    width = len(rows[start])
+    if width < 2:
+        return 0
+    reference = [item["bbox"][0] for item in rows[start]]
+    end = start
+    while end < len(rows) and len(rows[end]) == width:
+        positions = [item["bbox"][0] for item in rows[end]]
+        if any(
+            abs(left - expected) > body_size * 2
+            for left, expected in zip(positions, reference, strict=True)
+        ):
+            break
+        end += 1
+    return end - start if end - start >= 3 else 0
+
+
+def _unordered_list_height(
+    rows: list[list[dict[str, Any]]], start: int, body_size: float, left_margin: float
+) -> int:
+    if len(rows[start]) != 1:
+        return 0
+    first = rows[start][0]
+    if first["bbox"][0] - left_margin < body_size or first["size"] > body_size * 1.12:
+        return 0
+    end = start + 1
+    previous = first
+    while end < len(rows) and len(rows[end]) == 1:
+        item = rows[end][0]
+        gap = item["bbox"][1] - previous["bbox"][1]
+        if (
+            abs(item["bbox"][0] - first["bbox"][0]) > body_size * 0.4
+            or item["size"] > body_size * 1.12
+            or gap > body_size * 1.6
+            or re.match(r"^\d+[.)]\s*", item["text"])
+        ):
+            break
+        previous = item
+        end += 1
+    return end - start if end - start >= 3 else 0
 
 
 def extract_text_pdf(path: Path, start: int = 1, end: int | None = None) -> dict[str, Any]:
@@ -87,26 +222,121 @@ def extract_text_pdf(path: Path, start: int = 1, end: int | None = None) -> dict
         sizes = [item["size"] for page in objects for item in page]
         body_size = statistics.median(sizes) if sizes else 11.0
         blocks = []
-        for page_index, page in enumerate(objects):
+        all_rows = [_visual_rows(page, body_size) for page in objects]
+        heading_levels = _heading_levels([row for page in all_rows for row in page], body_size)
+        ordered = re.compile(r"^(\d+)[.)]\s*(.+)$")
+        for page_index, rows in enumerate(all_rows):
             if page_index:
                 blocks.append({"type": "page_break"})
-            for item in page:
-                value, size = item["text"], item["size"]
-                if size >= body_size * 1.6 and len(value) <= 160:
-                    level = 1
-                elif size >= body_size * 1.3 and len(value) <= 180:
-                    level = 2
-                elif size >= body_size * 1.12 and len(value) <= 200:
-                    level = 3
-                else:
-                    level = 0
-                kind: dict[str, Any] = {
-                    "type": "heading" if level else "paragraph",
-                    "content": [{"type": "text", "text": value}],
-                }
-                if level:
-                    kind["level"] = level
-                blocks.append(kind)
+            left_margin = min(
+                (
+                    row[0]["bbox"][0]
+                    for row in rows
+                    if len(row) == 1 and row[0]["size"] <= body_size * 1.12
+                ),
+                default=0.0,
+            )
+            index = 0
+            while index < len(rows):
+                row = rows[index]
+                table_height = _is_simple_table(rows, index, body_size)
+                if table_height:
+                    table_rows = rows[index : index + table_height]
+                    blocks.append(
+                        {
+                            "type": "table",
+                            "headers": [_content(item, styled=False) for item in table_rows[0]],
+                            "rows": [
+                                [_content(item) for item in table_row]
+                                for table_row in table_rows[1:]
+                            ],
+                        }
+                    )
+                    index += table_height
+                    continue
+                if len(row) != 1:
+                    value = " ".join(item["text"] for item in row)
+                    blocks.append(
+                        {"type": "paragraph", "content": [{"type": "text", "text": value}]}
+                    )
+                    index += 1
+                    continue
+                item = row[0]
+                level = heading_levels.get(round(item["size"], 1))
+                if level is not None:
+                    blocks.append(
+                        {"type": "heading", "level": level, "content": _content(item, styled=False)}
+                    )
+                    index += 1
+                    continue
+                unordered_height = _unordered_list_height(rows, index, body_size, left_margin)
+                if unordered_height:
+                    blocks.append(
+                        {
+                            "type": "list",
+                            "ordered": False,
+                            "items": [
+                                {"content": _content(rows[row_index][0])}
+                                for row_index in range(index, index + unordered_height)
+                            ],
+                        }
+                    )
+                    index += unordered_height
+                    continue
+                match = ordered.match(item["text"])
+                if match:
+                    items = []
+                    expected = int(match.group(1))
+                    while index < len(rows) and len(rows[index]) == 1:
+                        candidate = ordered.match(rows[index][0]["text"])
+                        if candidate is None or int(candidate.group(1)) != expected:
+                            break
+                        items.append(
+                            {"content": [{"type": "text", "text": candidate.group(2).strip()}]}
+                        )
+                        expected += 1
+                        index += 1
+                    if len(items) >= 2:
+                        blocks.append(
+                            {
+                                "type": "list",
+                                "ordered": True,
+                                "start": int(match.group(1)),
+                                "items": items,
+                            }
+                        )
+                        continue
+                    index -= len(items)
+                if item["runs"] and all(run["monospace"] for run in item["runs"]):
+                    lines = []
+                    while index < len(rows) and len(rows[index]) == 1:
+                        candidate = rows[index][0]
+                        if not candidate["runs"] or not all(
+                            run["monospace"] for run in candidate["runs"]
+                        ):
+                            break
+                        lines.append(candidate["text"])
+                        index += 1
+                    blocks.append({"type": "code_block", "text": "\n".join(lines)})
+                    continue
+                while index + 1 < len(rows) and len(rows[index + 1]) == 1:
+                    following = rows[index + 1][0]
+                    gap = following["bbox"][1] - item["bbox"][3]
+                    aligned = abs(following["bbox"][0] - item["bbox"][0]) <= body_size * 0.4
+                    if (
+                        gap > body_size * 0.7
+                        or not aligned
+                        or heading_levels.get(round(following["size"], 1)) is not None
+                        or ordered.match(following["text"])
+                        or (
+                            following["runs"] and all(run["monospace"] for run in following["runs"])
+                        )
+                    ):
+                        break
+                    _join_lines(item, following)
+                    index += 1
+                blocks.append({"type": "paragraph", "content": _content(item)})
+                index += 1
         metadata = document.get_metadata_dict()
         result: dict[str, Any] = {"version": 1, "blocks": blocks}
         if metadata.get("Title", "").strip():

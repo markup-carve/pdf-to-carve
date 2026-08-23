@@ -140,8 +140,11 @@ escaping. The contract can evolve by adding a new version.
 
 ## Limitations
 
-- Deterministic text mode infers headings from font size; it does not reconstruct
-  tables, lists, images, columns, or inline styling yet.
+- Deterministic text mode uses document-relative font sizes and positioned text
+  to recover headings, wrapped paragraphs, conservative lists and simple tables,
+  monospaced code blocks, bold/italic runs, and super/subscript. It does not yet
+  reconstruct images, columns, link annotations, underline/highlight, or tables
+  with spans.
 - Vision accuracy and cost depend on the selected provider and model.
 - `--assets-dir` extracts and deduplicates embedded raster images. Figure cropping
   and exact model-placeholder matching remain manual review steps.

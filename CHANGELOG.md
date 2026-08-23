@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Conversion
+
+- Improve deterministic PDFium text extraction with document-relative heading
+  levels, paragraph line joining, font-run styling, super/subscript, conservative
+  unordered and ordered lists, monospaced code blocks, and simple table grids.
+
+### Output
+
+- Escape literal block-opening punctuation before it can become unintended
+  Carve headings, lists, quotes, containers, tables, or thematic breaks.
+
 ## 0.1.0 - 2026-08-12
 
 First release.

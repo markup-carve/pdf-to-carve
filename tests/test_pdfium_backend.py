@@ -61,3 +61,51 @@ def test_pdfium_page_limits_fail_closed(tmp_path: Path) -> None:
         assert "maximum is 0" in str(exc)
     else:
         raise AssertionError("page limit was not enforced")
+
+
+def test_pdfium_text_mode_recovers_conservative_document_structure(tmp_path: Path) -> None:
+    pdf = tmp_path / "structured.pdf"
+    document = pymupdf.open()
+    page = document.new_page(width=500, height=700)
+    page.insert_text((20, 30), "Document title", fontsize=24, fontname="hebo")
+    page.insert_text((20, 65), "Introduction", fontsize=18, fontname="hebo")
+    page.insert_text((20, 90), "A wrapped paragraph that", fontsize=10)
+    page.insert_text((20, 101), "continues on this line.", fontsize=10)
+    page.insert_text((20, 125), "A separate paragraph.", fontsize=10)
+    page.insert_text((20, 150), "Normal ", fontsize=10)
+    page.insert_text((54, 150), "bold", fontsize=10, fontname="hebo")
+    page.insert_text((76, 150), " and ", fontsize=10)
+    page.insert_text((101, 150), "italic", fontsize=10, fontname="heit")
+    for y, value in ((180, "First"), (194, "Second"), (208, "Third")):
+        page.insert_text((40, y), value, fontsize=10)
+    for y, value in ((235, "1. One"), (249, "2. Two"), (263, "3. Three")):
+        page.insert_text((30, y), value, fontsize=10)
+    page.insert_text((30, 295), "print('one')", fontsize=10, fontname="cour")
+    page.insert_text((30, 307), "print('two')", fontsize=10, fontname="cour")
+    for y, values in (
+        (340, ("Name", "Value")),
+        (360, ("A", "1")),
+        (380, ("B", "2")),
+    ):
+        page.insert_text((20, y), values[0], fontsize=10)
+        page.insert_text((180, y), values[1], fontsize=10)
+    document.save(pdf)
+    document.close()
+
+    blocks = extract_text_pdf(pdf)["blocks"]
+    assert [(block["type"], block.get("level")) for block in blocks[:2]] == [
+        ("heading", 1),
+        ("heading", 2),
+    ]
+    assert blocks[2]["content"][0]["text"] == ("A wrapped paragraph that continues on this line.")
+    assert blocks[3]["content"][0]["text"] == "A separate paragraph."
+    assert [node["type"] for node in blocks[4]["content"]] == [
+        "text",
+        "strong",
+        "text",
+        "emphasis",
+    ]
+    assert blocks[5]["type"] == "list" and blocks[5]["ordered"] is False
+    assert blocks[6]["type"] == "list" and blocks[6]["ordered"] is True
+    assert blocks[7]["type"] == "code_block"
+    assert blocks[8]["type"] == "table"

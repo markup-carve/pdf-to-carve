@@ -165,6 +165,52 @@ def test_inline_renders_what_the_model_means(name: str) -> None:
         assert fragment in html, f"{name}: {fragment!r} missing from {html!r}"
 
 
+@pytest.mark.parametrize("name", ["strong", "emphasis", "underline", "strike", "highlight"])
+@pytest.mark.parametrize("prefix,suffix", [("a", "b"), ("", ""), ("(", ")")])
+@pytest.mark.parametrize("content", ["mid", " leading", "trailing ", " both "])
+def test_boundary_sensitive_marks_survive_every_text_boundary(
+    name: str, prefix: str, suffix: str, content: str
+) -> None:
+    """Generated marks must not depend on whitespace or sibling characters."""
+    tag = {
+        "strong": "strong",
+        "emphasis": "em",
+        "underline": "u",
+        "strike": "s",
+        "highlight": "mark",
+    }[name]
+    html = _render(
+        {
+            "type": "paragraph",
+            "content": [_text(prefix), {"type": name, "children": [_text(content)]}, _text(suffix)],
+        }
+    )
+    marked = content.strip() if name == "underline" and not prefix and not suffix else content
+    assert f"<{tag}>{marked}</{tag}>" in html
+
+
+@pytest.mark.parametrize("name,tag", [("strong", "strong"), ("emphasis", "em")])
+def test_redundant_same_type_nesting_is_flattened(name: str, tag: str) -> None:
+    html = _render_inline(
+        {
+            "type": name,
+            "children": [_text("a"), {"type": name, "children": [_text("b")]}, _text("c")],
+        }
+    )
+    assert f"<{tag}>abc</{tag}>" in html
+    assert html.count(f"<{tag}>") == 1
+
+
+@pytest.mark.parametrize("name,tag", [("code", "code"), ("math", "span")])
+@pytest.mark.parametrize("content", ["`", "``", "`edge", "edge`"])
+def test_verbatim_backtick_edges_survive_their_fence(name: str, tag: str, content: str) -> None:
+    html = _render_inline({"type": name, "text": content})
+    assert f"<{tag}" in html
+    assert content in html
+    if name == "math":
+        assert 'class="math inline"' in html
+
+
 def _schema_types(definition: str) -> set[str]:
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
     found: set[str] = set()

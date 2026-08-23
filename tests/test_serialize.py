@@ -11,7 +11,7 @@ def test_serializes_native_carve_without_markdown_stage() -> None:
     source = to_carve(Document.from_json(json.loads(FIXTURE.read_text())))
     assert source.startswith('---yaml\ntitle: "Example Document"')
     assert "{#results}\n# Results & discussion" in source
-    assert "The *important* result is $`x^2`." in source
+    assert "The {*important*} result is $`x^2`." in source
     assert "|= Name |= Value |" in source
     assert "`a|b`" in source
     assert "- [ ] first" in source
@@ -207,7 +207,7 @@ def test_serializes_native_semantic_nodes() -> None:
         }
     )
     assert to_carve(document) == (
-        "=key={^2^}{,n,}{+add+}{-drop-}{~old~>new~}^[note]\n\n"
+        "{=key=}{^2^}{,n,}{+add+}{-drop-}{~old~>new~}^[note]\n\n"
         "::: note\n*Remember*\n\nRead this.\n:::\n"
     )
 
@@ -242,4 +242,4 @@ def test_table_escapes_pipes_inside_nested_inline_nodes() -> None:
             ],
         }
     )
-    assert to_carve(document) == "|= a\\|b |\n| *a\\|b* |\n"
+    assert to_carve(document) == "|= a\\|b |\n| {*a\\|b*} |\n"

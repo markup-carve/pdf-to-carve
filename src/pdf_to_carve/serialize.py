@@ -51,7 +51,9 @@ def _escape_block_start(text: str) -> str:
     return _ORDERED_BLOCK_START.sub(r"\1\\\2 ", text, count=1)
 
 
-def _inline(nodes: tuple[Inline, ...], *, table: bool = False) -> str:
+def _inline(
+    nodes: tuple[Inline, ...], *, table: bool = False, active_marks: frozenset[str] = frozenset()
+) -> str:
     out = []
     previous_text_ends_percent = False
     for node in nodes:
@@ -67,28 +69,35 @@ def _inline(nodes: tuple[Inline, ...], *, table: bool = False) -> str:
             value = f"${_code_span(node.text)}"
         elif node.type == "link":
             url = _escape_url(node.url) if node.url else ""
-            value = f"[{_inline(node.children, table=table)}]({url})"
+            value = f"[{_inline(node.children, table=table, active_marks=active_marks)}]({url})"
         elif node.type == "substitute":
             value = (
-                f"{{~{_inline(node.children, table=table)}"
-                f"~>{_inline(node.replacement, table=table)}~}}"
+                f"{{~{_inline(node.children, table=table, active_marks=active_marks)}"
+                f"~>{_inline(node.replacement, table=table, active_marks=active_marks)}~}}"
             )
         elif node.type == "footnote":
-            value = f"^[{_inline(node.children, table=table)}]"
+            value = f"^[{_inline(node.children, table=table, active_marks=active_marks)}]"
         else:
             marks = {
-                "strong": ("*", "*"),
-                "emphasis": ("/", "/"),
-                "underline": ("_", "_"),
-                "strike": ("~", "~"),
-                "highlight": ("=", "="),
+                # Braces force these marks regardless of whitespace or adjacent
+                # word characters.  Bare delimiters are author-friendly, but a
+                # model writer cannot assume the surrounding word boundaries.
+                "strong": ("{*", "*}"),
+                "emphasis": ("{/", "/}"),
+                "underline": ("{_", "_}"),
+                "strike": ("{~", "~}"),
+                "highlight": ("{=", "=}"),
                 "superscript": ("{^", "^}"),
                 "subscript": ("{,", ",}"),
                 "insert": ("{+", "+}"),
                 "delete": ("{-", "-}"),
             }
             opening, closing = marks[node.type]
-            value = f"{opening}{_inline(node.children, table=table)}{closing}"
+            children = _inline(node.children, table=table, active_marks=active_marks | {node.type})
+            # Carve intentionally does not nest the same mark type. Nested
+            # identical HTML elements are semantically redundant, so flatten
+            # that model shape instead of emitting punctuation as text.
+            value = children if node.type in active_marks else f"{opening}{children}{closing}"
         out.append(value)
         previous_text_ends_percent = node.type == "text" and node.text.endswith("%")
     return "".join(out)
@@ -96,7 +105,11 @@ def _inline(nodes: tuple[Inline, ...], *, table: bool = False) -> str:
 
 def _code_span(text: str) -> str:
     ticks = "`" * (max((len(m.group()) for m in re.finditer(r"`+", text)), default=0) + 1)
-    return f"{ticks}{text}{ticks}"
+    # A delimiter directly touching a backtick-only edge is indistinguishable
+    # from one longer delimiter. Carve follows the familiar code-span padding
+    # rule: one interior space disambiguates it and is not part of the value.
+    padding = " " if text.startswith("`") or text.endswith("`") else ""
+    return f"{ticks}{padding}{text}{padding}{ticks}"
 
 
 def _table_rows(rows: list[list[dict[str, Any]]], width: int) -> list[str]:
@@ -144,6 +157,17 @@ def _block(block: Block) -> str:
         return f"{{#{d['id']}}}\n{heading}" if "id" in d else heading
     if block.type == "paragraph":
         paragraph = _escape_block_start(_inline(d["content"]))
+        # A line containing only `{_..._}` is currently consumed as a block
+        # attribute line by released Carve engines. The bare form is unambiguous
+        # at both paragraph boundaries; keep this compatibility fallback until
+        # the forced form wins that parser conflict upstream.
+        match = re.fullmatch(r"\{_(.*)_\}", paragraph)
+        if match:
+            content = match.group(1)
+            leading = content[: len(content) - len(content.lstrip())]
+            trailing = content[len(content.rstrip()) :]
+            core = content.strip()
+            paragraph = f"{leading}_{core}_{trailing}" if core else content
         return f"{{#{d['id']}}}\n{paragraph}" if "id" in d else paragraph
     if block.type == "list":
         lines = []

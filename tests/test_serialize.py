@@ -32,6 +32,42 @@ def test_escapes_document_text_and_variable_code_fences() -> None:
     assert "```` txt\ncontains ``` inside\n````" in source
 
 
+def test_escapes_literal_block_openers_in_paragraphs() -> None:
+    values = [
+        "# not a heading",
+        "### not a heading",
+        "- not a list item",
+        "+ not a list item",
+        "> not a quote",
+        "1. not an ordered item",
+        "a) not an ordered item",
+        "::: not a container",
+        "| not a table",
+        "---",
+    ]
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {"type": "paragraph", "content": [{"type": "text", "text": value}]}
+                for value in values
+            ],
+        }
+    )
+    assert to_carve(document) == (
+        "\\# not a heading\n\n"
+        "\\### not a heading\n\n"
+        "\\- not a list item\n\n"
+        "\\+ not a list item\n\n"
+        "\\> not a quote\n\n"
+        "1\\. not an ordered item\n\n"
+        "a\\) not an ordered item\n\n"
+        "\\::: not a container\n\n"
+        "\\| not a table\n\n"
+        "\\---\n"
+    )
+
+
 def test_page_break_uses_canonical_nonempty_container_layout() -> None:
     source = to_carve(Document.from_json({"version": 1, "blocks": [{"type": "page_break"}]}))
     assert source == "::: page-break\n\n:::\n"

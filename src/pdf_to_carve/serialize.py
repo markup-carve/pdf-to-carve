@@ -7,6 +7,8 @@ import re
 from .model import Block, Document, Inline
 
 _SPECIAL = re.compile(r"([\\/*_~=\[\]{}<>`%])")
+_BLOCK_START = re.compile(r"^(?:#{1,6} |[-+>:] |\||:::)")
+_ORDERED_BLOCK_START = re.compile(r"^([A-Za-z0-9]+)([.)]) ")
 
 
 def _escape(text: str) -> str:
@@ -21,6 +23,15 @@ def _escape_alt(text: str) -> str:
         .replace("[", r"\[")
         .replace("]", r"\]")
     )
+
+
+def _escape_block_start(text: str) -> str:
+    """Keep literal paragraph text from opening a Carve block."""
+    if _BLOCK_START.match(text):
+        return f"\\{text}"
+    if text == ":::" or re.fullmatch(r"-{3,}", text):
+        return f"\\{text}"
+    return _ORDERED_BLOCK_START.sub(r"\1\\\2 ", text, count=1)
 
 
 def _inline(nodes: tuple[Inline, ...], *, table: bool = False) -> str:
@@ -111,7 +122,7 @@ def _block(block: Block) -> str:
         heading = f"{'#' * d['level']} {_inline(d['content'])}"
         return f"{{#{d['id']}}}\n{heading}" if "id" in d else heading
     if block.type == "paragraph":
-        return _inline(d["content"])
+        return _escape_block_start(_inline(d["content"]))
     if block.type == "list":
         lines = []
         for index, item in enumerate(d["items"]):

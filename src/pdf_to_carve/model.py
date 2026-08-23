@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -52,6 +53,8 @@ def _string(value: Any, path: str, *, empty: bool = True) -> str:
     if not isinstance(value, str) or (not empty and not value.strip()):
         qualifier = "a non-empty string" if not empty else "a string"
         raise DocumentError(f"{path} must be {qualifier}")
+    if any((ord(char) < 32 and char not in "\t\n\r") or ord(char) == 127 for char in value):
+        raise DocumentError(f"{path} must not contain control characters")
     return value
 
 
@@ -60,6 +63,13 @@ def _name(value: Any, path: str) -> str:
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", name):
         raise DocumentError(f"{path} must be a portable name")
     return name
+
+
+def _language(value: Any, path: str) -> str:
+    language = _string(value, path, empty=False)
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_+.#-]*", language):
+        raise DocumentError(f"{path} must be a portable language token")
+    return language
 
 
 def _keys(value: dict[str, Any], allowed: set[str], path: str) -> None:
@@ -170,12 +180,12 @@ class Block:
                 raise DocumentError(f"{path}.level must be an integer from 1 to 6")
             data = {"level": level, "content": _inlines(obj.get("content"), f"{path}.content")}
             if "id" in obj:
-                data["id"] = _string(obj["id"], f"{path}.id", empty=False)
+                data["id"] = _name(obj["id"], f"{path}.id")
         elif kind == "paragraph":
             _keys(obj, {"type", "content", "id"}, path)
             data = {"content": _inlines(obj.get("content"), f"{path}.content")}
             if "id" in obj:
-                data["id"] = _string(obj["id"], f"{path}.id", empty=False)
+                data["id"] = _name(obj["id"], f"{path}.id")
         elif kind == "list":
             _keys(obj, {"type", "ordered", "start", "items"}, path)
             ordered = obj.get("ordered", False)
@@ -192,7 +202,9 @@ class Block:
             for i, item in enumerate(items):
                 item_obj = _object(item, f"{path}.items[{i}]")
                 _keys(item_obj, {"content", "checked"}, f"{path}.items[{i}]")
-                row = {"content": _inlines(item_obj.get("content"), f"{path}.items[{i}].content")}
+                row: dict[str, Any] = {
+                    "content": _inlines(item_obj.get("content"), f"{path}.items[{i}].content")
+                }
                 if "checked" in item_obj:
                     if not isinstance(item_obj["checked"], bool):
                         raise DocumentError(f"{path}.items[{i}].checked must be a boolean")
@@ -208,7 +220,7 @@ class Block:
             _keys(obj, {"type", "text", "language"}, path)
             data = {"text": _string(obj.get("text"), f"{path}.text")}
             if "language" in obj:
-                data["language"] = _string(obj["language"], f"{path}.language")
+                data["language"] = _language(obj["language"], f"{path}.language")
         elif kind == "quote":
             _keys(obj, {"type", "content", "attribution"}, path)
             data = {"content": _inlines(obj.get("content"), f"{path}.content")}
@@ -252,7 +264,7 @@ class Block:
             if "caption" in obj:
                 data["caption"] = _inlines(obj["caption"], f"{path}.caption")
             if "id" in obj:
-                data["id"] = _string(obj["id"], f"{path}.id", empty=False)
+                data["id"] = _name(obj["id"], f"{path}.id")
         elif kind == "admonition":
             _keys(obj, {"type", "kind", "content", "title"}, path)
             data = {
@@ -292,10 +304,18 @@ class Provenance:
             if (
                 not isinstance(raw_bbox, list)
                 or len(raw_bbox) != 4
-                or any(not isinstance(n, (int, float)) or isinstance(n, bool) for n in raw_bbox)
+                or any(
+                    not isinstance(n, (int, float)) or isinstance(n, bool) or not math.isfinite(n)
+                    for n in raw_bbox
+                )
             ):
                 raise DocumentError(f"{path}.bbox must contain four numbers")
-            bbox = tuple(float(n) for n in raw_bbox)
+            bbox = (
+                float(raw_bbox[0]),
+                float(raw_bbox[1]),
+                float(raw_bbox[2]),
+                float(raw_bbox[3]),
+            )
             if bbox[2] < bbox[0] or bbox[3] < bbox[1]:
                 raise DocumentError(f"{path}.bbox must have ordered coordinates")
         confidence = None
@@ -304,6 +324,7 @@ class Provenance:
             if (
                 not isinstance(raw_confidence, (int, float))
                 or isinstance(raw_confidence, bool)
+                or not math.isfinite(raw_confidence)
                 or not 0 <= raw_confidence <= 1
             ):
                 raise DocumentError(f"{path}.confidence must be between 0 and 1")
@@ -350,6 +371,9 @@ class Document:
         blocks = tuple(
             Block.from_json(item, f"document.blocks[{i}]") for i, item in enumerate(raw_blocks)
         )
+        ids = [block.data["id"] for block in blocks if "id" in block.data]
+        if len(set(ids)) != len(ids):
+            raise DocumentError("document block IDs must be unique")
         raw_provenance = obj.get("provenance", [])
         if not isinstance(raw_provenance, list):
             raise DocumentError("document.provenance must be an array")

@@ -4,7 +4,8 @@ from unittest.mock import patch
 import pymupdf
 import pytest
 
-from pdf_to_carve.pipeline import ConversionOptions, _baseline_prompt, convert
+from pdf_to_carve.model import DocumentError
+from pdf_to_carve.pipeline import ConversionOptions, _baseline_prompt, _official_check, convert
 
 EMPTY = {"version": 1, "blocks": []}
 
@@ -56,6 +57,29 @@ def test_hybrid_baseline_prompt_is_bounded_valid_json() -> None:
     decoded = __import__("json").loads(encoded)
     assert decoded["truncated"] is True
     assert len(encoded) <= 250
+
+
+def test_hybrid_baseline_prompt_bounds_oversized_metadata_and_marker() -> None:
+    document = {
+        "version": 1,
+        "title": "x" * 1_000,
+        "blocks": [
+            {"type": "paragraph", "content": [{"type": "text", "text": "y" * 100}]}
+            for _ in range(10)
+        ],
+    }
+    encoded = _baseline_prompt(document, max_chars=180)
+    assert len(encoded) <= 180
+    assert __import__("json").loads(encoded)["truncated"] is True
+
+    metadata_only = _baseline_prompt(
+        {"version": 1, "title": "x" * 1_000, "blocks": []}, max_chars=80
+    )
+    assert __import__("json").loads(metadata_only) == {
+        "version": 1,
+        "blocks": [],
+        "truncated": True,
+    }
 
 
 def test_hybrid_supplies_pdf_link_destinations_as_evidence(tmp_path: Path) -> None:
@@ -172,3 +196,45 @@ def test_input_size_limit_is_enforced(tmp_path: Path) -> None:
     image.write_bytes(b"x" * (1024 * 1024 + 1))
     with pytest.raises(ValueError, match="1 MiB"):
         convert(image, ConversionOptions(mode="vision", max_input_mb=1, api_key="x"))
+
+
+def test_invalid_library_options_fail_before_extraction(tmp_path: Path) -> None:
+    pdf = tmp_path / "sample.pdf"
+    _pdf(pdf)
+    with pytest.raises(ValueError, match="unsupported conversion mode"):
+        convert(pdf, ConversionOptions(mode="unknown"))  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="text_threshold"):
+        convert(pdf, ConversionOptions(text_threshold=float("nan")))
+
+
+def test_invalid_provider_output_is_not_cached(tmp_path: Path) -> None:
+    pdf = tmp_path / "sample.pdf"
+    cache = tmp_path / "cache"
+    _pdf(pdf)
+    invalid = {"version": 1, "blocks": [{"type": "unknown"}]}
+    with (
+        patch("pdf_to_carve.pipeline.transcribe_images", return_value=invalid),
+        pytest.raises(DocumentError),
+    ):
+        convert(pdf, ConversionOptions(mode="vision", api_key="x", cache_dir=cache))
+    assert not list(cache.glob("*.json"))
+
+
+def test_official_check_resolves_a_path_command_and_closes_source_before_running(
+    tmp_path: Path,
+) -> None:
+    executable = tmp_path / "carve"
+    executable.write_text("")
+
+    def run(command, **_kwargs):
+        assert command[0] == str(executable)
+        assert Path(command[-1]).read_text(encoding="utf-8") == "Text\n"
+        return type("Completed", (), {"returncode": 0, "stderr": "", "stdout": ""})()
+
+    with (
+        patch("pdf_to_carve.pipeline.shutil.which", return_value=str(executable)) as which,
+        patch("pdf_to_carve.pipeline.subprocess.run", side_effect=run) as invoked,
+    ):
+        assert _official_check("Text\n", "carve") == ()
+    which.assert_called_once_with("carve")
+    assert invoked.call_count == 2

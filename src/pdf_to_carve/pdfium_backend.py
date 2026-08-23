@@ -120,6 +120,20 @@ def _range(document: pdfium.PdfDocument, start: int, end: int | None) -> range:
     return range(start - 1, last)
 
 
+def _drop_out_of_range_internal_links(objects: list[list[dict[str, Any]]], pages: list[int]) -> int:
+    """Remove links whose generated page anchor cannot exist in the selected range."""
+    selected = {number + 1 for number in pages}
+    dropped = 0
+    for page in objects:
+        for item in page:
+            for run in item["runs"]:
+                match = re.fullmatch(r"#page-(\d+)", run.get("url", ""))
+                if match and int(match.group(1)) not in selected:
+                    run.pop("url")
+                    dropped += 1
+    return dropped
+
+
 def _objects(page: pdfium.PdfPage) -> list[dict[str, Any]]:
     """Return text objects in visual column-major order and top-left coordinates."""
     height = page.get_height()
@@ -844,6 +858,7 @@ def extract_text_pdf(
     try:
         pages = list(_range(document, start, end))
         objects = [_objects(document[number]) for number in pages]
+        dropped_internal_links = _drop_out_of_range_internal_links(objects, pages)
         sizes = [
             item["size"]
             for index, page in enumerate(objects)
@@ -1101,6 +1116,11 @@ def extract_text_pdf(
         )
         if merged_tables:
             diagnostics.append(f"merged {merged_tables} table continuation(s) across page breaks")
+        if dropped_internal_links:
+            diagnostics.append(
+                f"dropped {dropped_internal_links} internal link run(s) whose destination "
+                "was outside the selected page range"
+            )
         if diagnostics:
             result["diagnostics"] = diagnostics
         if metadata.get("Title", "").strip():
@@ -1130,11 +1150,14 @@ def text_coverage(path: Path, start: int = 1, end: int | None = None) -> float:
 def positioned_text(path: Path, start: int = 1, end: int | None = None) -> list[dict[str, Any]]:
     document = pdfium.PdfDocument(path)
     try:
+        pages = list(_range(document, start, end))
+        objects = [_objects(document[number]) for number in pages]
+        _drop_out_of_range_internal_links(objects, pages)
         result = []
-        for number in _range(document, start, end):
+        for number, page_objects in zip(pages, objects, strict=True):
             page = document[number]
             width, height = page.get_size()
-            for item in _objects(page):
+            for item in page_objects:
                 evidence = {
                     "page": number + 1,
                     "bbox": [round(float(value), 2) for value in item["bbox"]],

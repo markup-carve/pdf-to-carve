@@ -111,7 +111,7 @@
             "type": {"const": "heading"},
             "level": {"type": "integer", "minimum": 1, "maximum": 6},
             "content": {"$ref": "#/$defs/inlines"},
-            "id": {"type": "string", "minLength": 1}
+            "id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"}
           }
         },
         {
@@ -132,7 +132,7 @@
           "properties": {
             "type": {"const": "paragraph"},
             "content": {"$ref": "#/$defs/inlines"},
-            "id": {"type": "string", "minLength": 1}
+            "id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"}
           }
         },
         {
@@ -153,7 +153,7 @@
           "properties": {
             "type": {"const": "code_block"},
             "text": {"type": "string"},
-            "language": {"type": "string"}
+            "language": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_+.#-]*$"}
           }
         },
         {
@@ -190,7 +190,7 @@
             "src": {"type": "string", "minLength": 1},
             "alt": {"type": "string"},
             "caption": {"$ref": "#/$defs/inlines"},
-            "id": {"type": "string", "minLength": 1}
+            "id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"}
           }
         },
         {

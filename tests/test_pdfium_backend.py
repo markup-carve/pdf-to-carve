@@ -364,6 +364,33 @@ def test_pdfium_anchors_internal_destination_without_a_heading(tmp_path: Path) -
     assert blocks[2]["id"] == "page-2"
 
 
+def test_pdfium_drops_internal_links_outside_the_selected_range(tmp_path: Path) -> None:
+    pdf = tmp_path / "partial-internal-link.pdf"
+    document = pymupdf.open()
+    first = document.new_page(width=400, height=300)
+    first.insert_text((20, 70), "Read omitted destination", fontsize=10)
+    second = document.new_page(width=400, height=300)
+    second.insert_text((20, 70), "Omitted destination", fontsize=10)
+    document[0].insert_link(
+        {
+            "kind": pymupdf.LINK_GOTO,
+            "from": pymupdf.Rect(20, 58, 150, 74),
+            "page": 1,
+            "to": pymupdf.Point(20, 70),
+        }
+    )
+    document.save(pdf)
+    document.close()
+
+    raw = extract_text_pdf(pdf, end=1)
+
+    assert raw["blocks"][0]["content"] == [{"type": "text", "text": "Read omitted destination"}]
+    assert raw["diagnostics"] == [
+        "dropped 1 internal link run(s) whose destination was outside the selected page range"
+    ]
+    assert "urls" not in positioned_text(pdf, end=1)[0]
+
+
 def test_pdfium_merges_repeated_table_header_across_page_break(tmp_path: Path) -> None:
     pdf = tmp_path / "continued-table.pdf"
     document = pymupdf.open()

@@ -13,7 +13,7 @@ Measured result:
 
 | Pages | Output blocks | Median | Range | Process peak RSS |
 | ---: | ---: | ---: | ---: | ---: |
-| 100 | 2,499 | 1.5058 s | 1.4863 to 1.5319 s | 77.9 MiB |
+| 100 | 2,499 | 1.5759 s | 1.5296 to 1.6924 s | 77.7 MiB |
 
 Environment: Linux 7.0.0-29-generic, Python 3.12.3, AMD Ryzen 9 PRO 7940HS,
 16 logical CPUs. The extractor is single-process and does not use the network.

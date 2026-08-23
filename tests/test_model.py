@@ -76,6 +76,36 @@ def test_document_round_trips_inference_diagnostics() -> None:
             },
             "portable name",
         ),
+        (
+            {
+                "version": 1,
+                "blocks": [
+                    {"type": "heading", "level": 1, "id": "safe}\n# injected", "content": []}
+                ],
+            },
+            "portable name",
+        ),
+        (
+            {
+                "version": 1,
+                "blocks": [
+                    {"type": "code_block", "text": "pass", "language": "python\n# injected"}
+                ],
+            },
+            "portable language token",
+        ),
+        (
+            {
+                "version": 1,
+                "blocks": [
+                    {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": "nul\u0000byte"}],
+                    }
+                ],
+            },
+            "control characters",
+        ),
     ],
 )
 def test_invalid_documents_fail_closed(raw: object, message: str) -> None:
@@ -179,4 +209,27 @@ def test_duplicate_provenance_fails_closed() -> None:
         "provenance": [{"block": 0, "page": 1}, {"block": 0, "page": 2}],
     }
     with pytest.raises(DocumentError, match="at most one"):
+        Document.from_json(raw)
+
+
+def test_duplicate_block_ids_fail_closed() -> None:
+    raw = {
+        "version": 1,
+        "blocks": [
+            {"type": "paragraph", "id": "same", "content": []},
+            {"type": "figure", "id": "same", "src": "image.png"},
+        ],
+    }
+    with pytest.raises(DocumentError, match="IDs must be unique"):
+        Document.from_json(raw)
+
+
+@pytest.mark.parametrize("number", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_provenance_numbers_fail_closed(number: float) -> None:
+    raw = {
+        "version": 1,
+        "blocks": [{"type": "paragraph", "content": []}],
+        "provenance": [{"block": 0, "page": 1, "bbox": [0, 0, number, 1]}],
+    }
+    with pytest.raises(DocumentError, match="four numbers"):
         Document.from_json(raw)

@@ -118,6 +118,31 @@ def test_figure_alt_keeps_plain_underscores_and_escapes_brackets() -> None:
     assert to_carve(document) == r"![print_cdp.py \[diagram\]](image.png)" + "\n"
 
 
+def test_urls_cannot_open_new_carve_blocks() -> None:
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {
+                            "type": "link",
+                            "url": "https://example.com/a b)\n# injected",
+                            "children": [{"type": "text", "text": "link"}],
+                        }
+                    ],
+                },
+                {"type": "figure", "src": "assets/a b)\n# injected.png"},
+            ],
+        }
+    )
+    assert to_carve(document) == (
+        "[link](https://example.com/a%20b%29%0A#%20injected)\n\n"
+        "![](assets/a%20b%29%0A#%20injected.png)\n"
+    )
+
+
 def test_table_spans_emit_native_carve_placeholders() -> None:
     def cell(text: str) -> list[dict[str, str]]:
         return [{"type": "text", "text": text}]

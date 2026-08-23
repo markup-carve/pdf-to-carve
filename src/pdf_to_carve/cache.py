@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -12,8 +13,11 @@ from typing import Any
 def cache_key(*, files: list[Path], model: str, prompt: str, schema_version: int = 1) -> str:
     digest = hashlib.sha256()
     digest.update(f"schema={schema_version}\0model={model}\0prompt={prompt}\0".encode())
+    digest.update(len(files).to_bytes(8, "big"))
     for path in files:
-        digest.update(path.read_bytes())
+        content = path.read_bytes()
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
     return digest.hexdigest()
 
 
@@ -34,6 +38,14 @@ class JsonCache:
     def put(self, key: str, value: dict[str, Any]) -> None:
         self.directory.mkdir(parents=True, exist_ok=True)
         target = self.directory / f"{key}.json"
-        temporary = self.directory / f".{key}.{os.getpid()}.tmp"
-        temporary.write_text(json.dumps(value, ensure_ascii=False) + "\n", encoding="utf-8")
-        temporary.replace(target)
+        descriptor, temporary_name = tempfile.mkstemp(
+            dir=self.directory, prefix=f".{key}.{os.getpid()}.", suffix=".tmp"
+        )
+        temporary = Path(temporary_name)
+        try:
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                json.dump(value, handle, ensure_ascii=False, allow_nan=False)
+                handle.write("\n")
+            temporary.replace(target)
+        finally:
+            temporary.unlink(missing_ok=True)

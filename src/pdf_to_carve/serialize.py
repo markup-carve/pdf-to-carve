@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import re
+from typing import Any
+from urllib.parse import quote
 
 from .model import Block, Document, Inline
 
 _SPECIAL = re.compile(r"([\\/*_~=\[\]{}<>`])")
 _BLOCK_START = re.compile(r"^(?:#{1,6} |[-+>:] |\||:::)")
 _ORDERED_BLOCK_START = re.compile(r"^([A-Za-z0-9]+)([.)]) ")
+_URL_SAFE = "/:#?&=@[]!$'*+,;%-._~"
 
 
 def _escape(text: str) -> str:
@@ -36,7 +39,7 @@ def _escape_url(url: str) -> str:
     falls back to literal text. Escaping half a balanced pair is worse than
     escaping neither.
     """
-    return url.replace("\\", "%5C").replace("(", "%28").replace(")", "%29")
+    return quote(url, safe=_URL_SAFE)
 
 
 def _escape_block_start(text: str) -> str:
@@ -96,7 +99,7 @@ def _code_span(text: str) -> str:
     return f"{ticks}{text}{ticks}"
 
 
-def _table_rows(rows: list[list[dict[str, object]]], width: int) -> list[str]:
+def _table_rows(rows: list[list[dict[str, Any]]], width: int) -> list[str]:
     occupied = [0] * width
     rendered_rows = []
     for row in rows:
@@ -108,7 +111,7 @@ def _table_rows(rows: list[list[dict[str, object]]], width: int) -> list[str]:
                 cursor += 1
             colspan = int(cell["colspan"])
             rowspan = int(cell["rowspan"])
-            cells[cursor] = _inline(cell["content"], table=True)  # type: ignore[arg-type]
+            cells[cursor] = _inline(cell["content"], table=True)
             for column in range(cursor, cursor + colspan):
                 active[column] = True
                 occupied[column] = max(occupied[column], rowspan)

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import math
+import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
@@ -63,18 +65,29 @@ class ConversionResult:
 
 def _baseline_prompt(document: dict[str, Any], max_chars: int = 60_000) -> str:
     """Return valid, bounded baseline JSON for visual repair guidance."""
-    envelope = {
-        key: value for key, value in document.items() if key not in {"blocks", "provenance"}
-    }
-    envelope["blocks"] = []
+    envelope: dict[str, Any] = {"version": document.get("version", 1), "blocks": []}
+    truncated = False
+    for key in ("title", "author", "language"):
+        if key in document:
+            candidate = {**envelope, key: document[key], "truncated": True}
+            if len(json.dumps(candidate, ensure_ascii=False, separators=(",", ":"))) <= max_chars:
+                envelope[key] = document[key]
+            else:
+                truncated = True
     for block in document.get("blocks", []):
-        candidate = {**envelope, "blocks": [*envelope["blocks"], block]}
+        candidate = {**envelope, "blocks": [*envelope["blocks"], block], "truncated": True}
         encoded = json.dumps(candidate, ensure_ascii=False, separators=(",", ":"))
         if len(encoded) > max_chars:
-            envelope["truncated"] = True
+            truncated = True
             break
+        candidate.pop("truncated")
         envelope = candidate
-    return json.dumps(envelope, ensure_ascii=False, separators=(",", ":"))
+    if truncated:
+        envelope["truncated"] = True
+    encoded = json.dumps(envelope, ensure_ascii=False, separators=(",", ":"))
+    if len(encoded) > max_chars:
+        raise ValueError("baseline prompt budget is too small")
+    return encoded
 
 
 def _document_warnings(document: Document) -> tuple[str, ...]:
@@ -111,18 +124,24 @@ def _render_pages(
 
 
 def _official_check(source: str, command: str) -> tuple[str, ...]:
-    executable = str(Path(command).expanduser().resolve())
-    with tempfile.NamedTemporaryFile("w", suffix=".crv", encoding="utf-8") as handle:
-        handle.write(source)
-        handle.flush()
+    expanded = Path(command).expanduser()
+    if expanded.is_absolute() or expanded.parent != Path("."):
+        executable = str(expanded.resolve())
+    else:
+        executable = shutil.which(command)
+        if executable is None:
+            raise FileNotFoundError(f"Carve CLI was not found: {command}")
+    with tempfile.TemporaryDirectory(prefix="pdf-to-carve-check-") as directory:
+        source_path = Path(directory) / "document.crv"
+        source_path.write_text(source, encoding="utf-8")
         formatted = subprocess.run(
-            [executable, "fmt", "--check", handle.name],
+            [executable, "fmt", "--check", str(source_path)],
             capture_output=True,
             text=True,
             check=False,
         )
         linted = subprocess.run(
-            [executable, "lint", handle.name], capture_output=True, text=True, check=False
+            [executable, "lint", str(source_path)], capture_output=True, text=True, check=False
         )
     messages = []
     if formatted.returncode:
@@ -142,6 +161,10 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
         raise FileNotFoundError(path)
     if options.max_input_mb < 1:
         raise ValueError("max_input_mb must be positive")
+    if options.mode not in ("auto", "text", "vision", "hybrid"):
+        raise ValueError(f"unsupported conversion mode: {options.mode}")
+    if not math.isfinite(options.text_threshold) or options.text_threshold < 0:
+        raise ValueError("text_threshold must be a finite non-negative number")
     if path.stat().st_size > options.max_input_mb * 1024 * 1024:
         raise ValueError(f"input exceeds the {options.max_input_mb} MiB safety limit")
     is_pdf = path.suffix.lower() == ".pdf"
@@ -158,6 +181,7 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
     extract_images = (
         pdfium_extract_images if options.pdf_backend == "pdfium" else pymupdf_extract_images
     )
+    cache_write: tuple[JsonCache, str, dict[str, Any]] | None = None
     selected = options.mode
     if selected == "auto":
         selected = (
@@ -227,6 +251,7 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
                 prompt=f"{SYSTEM_PROMPT}\n{context or ''}",
             )
             raw = cache.get(key) if cache and options.use_cache else None
+            cache_miss = raw is None
             if raw is None:
                 if options.provider == "codex-cli":
                     raw = transcribe_images_codex(images, model=model, context=context)
@@ -241,8 +266,8 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
                         retries=options.retries,
                         context=context,
                     )
-                if cache and options.use_cache:
-                    cache.put(key, raw)
+            if cache and options.use_cache and cache_miss:
+                cache_write = (cache, key, raw)
             if selected == "hybrid" and baseline is not None:
                 raw = reconcile_hybrid(baseline, raw)
     if (
@@ -252,6 +277,8 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
     ):
         extract_images(path, options.assets_dir)
     document = Document.from_json(raw)
+    if cache_write:
+        cache_write[0].put(cache_write[1], cache_write[2])
     source = to_carve(document)
     diagnostics = _official_check(source, options.carve_command) if options.carve_command else ()
     return ConversionResult(source, document, selected, diagnostics, _document_warnings(document))

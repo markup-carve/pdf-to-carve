@@ -33,6 +33,14 @@
   structural repairs, and publish inference diagnostics separately from errors.
 - Add a generated seven-document PDF regression corpus with hand-checked Carve
   answer keys and a repeatable 100-page performance profile.
+- Drop internal links whose destination is outside the selected page range
+  instead of emitting a dangling generated anchor.
+- Keep hybrid baseline prompts within their stated byte budget even with large
+  PDF metadata, and cache provider responses only after the reconciled document
+  passes validation.
+- Delimit multi-page cache keys, make concurrent cache writes collision-safe,
+  and validate conversion modes, thresholds, portable IDs, language tokens,
+  unique anchors, controls, and finite provenance numbers.
 
 ### Output
 
@@ -48,6 +56,10 @@
 - Keep a link or asset path whose URL holds a parenthesis. Only the closing one
   was encoded, which unbalanced a pair the destination scan already handled and
   dropped the whole link to literal text.
+- Percent-encode other unsafe link and asset-destination characters at the
+  writer boundary so provider-controlled values cannot open new Carve lines.
+- Resolve a bare `--carve-command carve` through `PATH` and run official checks
+  through a closed temporary file so validation also works on Windows.
 
 ## 0.1.0 - 2026-08-12
 

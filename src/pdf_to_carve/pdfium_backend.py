@@ -451,6 +451,90 @@ def _is_simple_table(rows: list[list[dict[str, Any]]], start: int, body_size: fl
     return end - start if end - start >= 3 else 0
 
 
+def _enclosing_cell(item: dict[str, Any], paths: list[list[float]]) -> list[float] | None:
+    candidates = [
+        path
+        for path in paths
+        if _inside(item["bbox"], path, tolerance=1.5)
+        and path[2] - path[0] > item["bbox"][2] - item["bbox"][0] + 2
+        and path[3] - path[1] > item["bbox"][3] - item["bbox"][1] + 2
+    ]
+    return (
+        min(candidates, key=lambda path: (path[2] - path[0]) * (path[3] - path[1]))
+        if candidates
+        else None
+    )
+
+
+def _bordered_spanning_table(
+    rows: list[list[dict[str, Any]]], start: int, body_size: float, paths: list[list[float]]
+) -> tuple[int, dict[str, Any]] | None:
+    if len(rows[start]) < 2:
+        return None
+    candidate_rows = []
+    index = start
+    previous_bottom = None
+    while index < len(rows):
+        row = rows[index]
+        if (
+            previous_bottom is not None
+            and min(item["bbox"][1] for item in row) - previous_bottom > body_size * 2.5
+        ):
+            break
+        regions = [_enclosing_cell(item, paths) for item in row]
+        if any(region is None for region in regions):
+            break
+        candidate_rows.append((row, regions))
+        previous_bottom = max(item["bbox"][3] for item in row)
+        index += 1
+    if len(candidate_rows) < 3:
+        return None
+    header, header_regions = candidate_rows[0]
+    if len(header_regions) != len(header):
+        return None
+    header_regions = sorted(header_regions, key=lambda region: region[0])  # type: ignore[index]
+    centers = [(region[0] + region[2]) / 2 for region in header_regions]  # type: ignore[index]
+    row_centers = [
+        sum((item["bbox"][1] + item["bbox"][3]) / 2 for item in row) / len(row)
+        for row, _ in candidate_rows
+    ]
+    body_rows = []
+    found_span = False
+    for row_index, (row, regions) in enumerate(candidate_rows[1:], 1):
+        cells = []
+        for item, region in sorted(zip(row, regions, strict=True), key=lambda pair: pair[1][0]):  # type: ignore[index]
+            assert region is not None
+            columns = [
+                column for column, center in enumerate(centers) if region[0] <= center <= region[2]
+            ]
+            if not columns:
+                return None
+            colspan = len(columns)
+            rowspan = sum(
+                1 for center in row_centers[row_index:] if region[1] <= center <= region[3]
+            )
+            cell: Any = _content(item)
+            if rowspan > 1 or colspan > 1:
+                found_span = True
+                cell = {"content": cell}
+                if rowspan > 1:
+                    cell["rowspan"] = rowspan
+                if colspan > 1:
+                    cell["colspan"] = colspan
+            cells.append((columns[0], cell))
+        body_rows.append([cell for _, cell in sorted(cells)])
+    if not found_span:
+        return None
+    return len(candidate_rows), {
+        "type": "table",
+        "headers": [_content(item, styled=False) for item in header],
+        "alignments": _table_alignments([row for row, _ in candidate_rows], body_size)
+        if all(len(row) == len(header) for row, _ in candidate_rows)
+        else ["left"] * len(header),
+        "rows": body_rows,
+    }
+
+
 def _table_alignments(rows: list[list[dict[str, Any]]], body_size: float) -> list[str]:
     """Infer column alignment only when one geometric edge is clearly more stable."""
     result = []
@@ -771,8 +855,23 @@ def extract_text_pdf(
         body_size = statistics.median(sizes) if sizes else 11.0
         blocks = []
         all_rows = [_visual_rows(page, body_size) for page in objects]
+        paths_by_page = [_page_paths(document[number]) for number in pages]
         page_heights = [document[number].get_height() for number in pages]
         repeated_furniture = _repeated_furniture(all_rows, page_heights)
+        page_footnotes = [
+            _footnote_definitions(rows, page_heights[index], body_size)
+            for index, rows in enumerate(all_rows)
+        ]
+        footnote_counts: dict[str, int] = {}
+        for definitions, _ in page_footnotes:
+            for label in definitions:
+                footnote_counts[label] = footnote_counts.get(label, 0) + 1
+        document_footnotes = {
+            label: text
+            for definitions, _ in page_footnotes
+            for label, text in definitions.items()
+            if footnote_counts[label] == 1
+        }
         column_pages = {
             pages[index] + 1: max(item.get("_column", 0) for item in page) + 1
             for index, page in enumerate(objects)
@@ -812,9 +911,8 @@ def extract_text_pdf(
             )
             index = 0
             emitted_figures: set[int] = set()
-            footnotes, footnote_rows = _footnote_definitions(
-                rows, page_heights[page_index], body_size
-            )
+            footnotes = document_footnotes
+            footnote_rows = page_footnotes[page_index][1]
             caption_rows = _attach_figure_captions(figure_regions[page_index], rows, body_size)
             while index < len(rows):
                 row = rows[index]
@@ -865,6 +963,14 @@ def extract_text_pdf(
                         ):
                             table["caption"] = _content(caption, suppress_italic=True)
                             table_height += 1
+                    blocks.append(table)
+                    index += table_height
+                    continue
+                spanning = _bordered_spanning_table(
+                    rows, index, body_size, paths_by_page[page_index]
+                )
+                if spanning is not None:
+                    table_height, table = spanning
                     blocks.append(table)
                     index += table_height
                     continue

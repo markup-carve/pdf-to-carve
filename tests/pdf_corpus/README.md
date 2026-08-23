@@ -10,7 +10,7 @@ uv run python tests/pdf_corpus/generate.py
 
 The corpus covers two- and three-column reading order, repeated page furniture, internal
 links, multiline footnotes, repeated raster placements, captions, rotated text,
-code-language inference, and table alignment.
+code-language inference, table alignment, and bordered row/column spans.
 
 `tests/test_pdf_corpus.py` converts every PDF and compares the complete Carve
 source with its answer key. This makes the corpus a release gate rather than a

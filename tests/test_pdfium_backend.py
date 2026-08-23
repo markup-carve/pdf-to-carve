@@ -162,6 +162,48 @@ def test_pdfium_pairs_superscript_reference_with_bottom_footnote(tmp_path: Path)
     ]
 
 
+def test_pdfium_pairs_footnote_definition_on_following_page(tmp_path: Path) -> None:
+    pdf = tmp_path / "cross-page-footnote.pdf"
+    document = pymupdf.open()
+    first = document.new_page(width=300, height=300)
+    first.insert_text((20, 80), "Claim", fontsize=10)
+    first.insert_text((47, 76), "7", fontsize=7)
+    second = document.new_page(width=300, height=300)
+    second.insert_text((20, 270), "7 Cross-page definition", fontsize=8)
+    document.save(pdf)
+    document.close()
+
+    blocks = extract_text_pdf(pdf)["blocks"]
+    assert blocks[0]["content"][1] == {
+        "type": "footnote",
+        "children": [{"type": "text", "text": "Cross-page definition"}],
+    }
+
+
+def test_pdfium_recovers_bordered_row_and_column_spans(tmp_path: Path) -> None:
+    pdf = tmp_path / "spans.pdf"
+    document = pymupdf.open()
+    page = document.new_page(width=400, height=250)
+    for left in (20, 120, 220):
+        page.draw_rect(pymupdf.Rect(left, 50, left + 100, 80))
+    page.draw_rect(pymupdf.Rect(20, 80, 120, 140))
+    page.draw_rect(pymupdf.Rect(120, 80, 220, 110))
+    page.draw_rect(pymupdf.Rect(220, 80, 320, 110))
+    page.draw_rect(pymupdf.Rect(120, 110, 320, 140))
+    for x, value in zip((30, 130, 230), ("Name", "Q1", "Q2"), strict=True):
+        page.insert_text((x, 70), value, fontsize=10)
+    for x, value in zip((30, 130, 230), ("A", "1", "2"), strict=True):
+        page.insert_text((x, 100), value, fontsize=10)
+    page.insert_text((180, 130), "3", fontsize=10)
+    document.save(pdf)
+    document.close()
+
+    table = extract_text_pdf(pdf)["blocks"][0]
+    assert table["type"] == "table"
+    assert table["rows"][0][0]["rowspan"] == 2
+    assert table["rows"][1][0]["colspan"] == 2
+
+
 def test_pdfium_text_mode_recovers_conservative_document_structure(tmp_path: Path) -> None:
     pdf = tmp_path / "structured.pdf"
     document = pymupdf.open()

@@ -152,7 +152,8 @@ escaping. The contract can evolve by adding a new version.
   rotated text, multiline numeric superscript footnotes, reused raster assets,
   and repeated multi-page table continuations are handled conservatively. It does
   not invent code indentation, reconstruct arbitrary diagram semantics, or
-  guess ambiguous or spanning table grids.
+  guess ambiguous unbordered table spans. Bordered spans are recovered only when
+  enclosing cell geometry proves their row and column extent.
 - Vision accuracy and cost depend on the selected provider and model.
 - Hybrid mode uses deterministic text extraction as its trusted baseline. Model
   wording changes are discarded; code may change whitespace only. Structural

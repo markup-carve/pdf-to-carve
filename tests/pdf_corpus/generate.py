@@ -113,6 +113,21 @@ def rotated_code_table(document) -> None:
     page.insert_text((20, 228), "Table 1: Revenue", fontsize=9, fontname="heit")
 
 
+def spanning_table(document) -> None:
+    page = document.new_page(width=400, height=250)
+    for left in (20, 120, 220):
+        page.draw_rect(pymupdf.Rect(left, 50, left + 100, 80))
+    page.draw_rect(pymupdf.Rect(20, 80, 120, 140))
+    page.draw_rect(pymupdf.Rect(120, 80, 220, 110))
+    page.draw_rect(pymupdf.Rect(220, 80, 320, 110))
+    page.draw_rect(pymupdf.Rect(120, 110, 320, 140))
+    for x, value in zip((30, 130, 230), ("Name", "Q1", "Q2"), strict=True):
+        page.insert_text((x, 70), value, fontsize=10)
+    for x, value in zip((30, 130, 230), ("A", "1", "2"), strict=True):
+        page.insert_text((x, 100), value, fontsize=10)
+    page.insert_text((180, 130), "3", fontsize=10)
+
+
 for name, drawing in (
     ("columns", columns),
     ("furniture", furniture),
@@ -120,5 +135,6 @@ for name, drawing in (
     ("links-footnotes", links_footnotes),
     ("assets", assets),
     ("rotated-code-table", rotated_code_table),
+    ("spanning-table", spanning_table),
 ):
     save(name, drawing)

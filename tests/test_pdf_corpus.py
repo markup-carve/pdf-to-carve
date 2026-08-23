@@ -15,6 +15,7 @@ CORPUS = Path(__file__).parent / "pdf_corpus"
         "furniture",
         "links-footnotes",
         "rotated-code-table",
+        "spanning-table",
         "three-columns",
     ],
 )

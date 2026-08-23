@@ -21,6 +21,8 @@
   definitions, reuse identical raster assets across placements, anchor internal
   destinations without headings, and merge repeated table continuations across
   page breaks.
+- Pair uniquely numbered footnotes across page boundaries and recover bordered
+  table row/column spans only when enclosing cell geometry proves the grid.
 - Supply PDF link destinations to hybrid extraction and strengthen visual
   guidance for code indentation, decoration, quotations, and diagrams.
 - Reconcile hybrid repairs against deterministic text-mode output: wording

@@ -213,7 +213,7 @@ class Block:
             if "attribution" in obj:
                 data["attribution"] = _inlines(obj["attribution"], f"{path}.attribution")
         elif kind == "table":
-            _keys(obj, {"type", "headers", "rows", "caption"}, path)
+            _keys(obj, {"type", "headers", "rows", "alignments", "caption"}, path)
             headers = obj.get("headers")
             rows = obj.get("rows")
             if not isinstance(headers, list) or not headers:
@@ -232,6 +232,13 @@ class Block:
                 )
             _validate_table_grid(parsed_rows, len(headers), f"{path}.rows")
             data = {"headers": parsed_headers, "rows": parsed_rows}
+            if "alignments" in obj:
+                alignments = obj["alignments"]
+                if not isinstance(alignments, list) or len(alignments) != len(headers):
+                    raise DocumentError(f"{path}.alignments must have one entry per column")
+                if any(value not in {"left", "right", "center"} for value in alignments):
+                    raise DocumentError(f"{path}.alignments entries must be left, right, or center")
+                data["alignments"] = tuple(alignments)
             if "caption" in obj:
                 data["caption"] = _inlines(obj["caption"], f"{path}.caption")
         elif kind == "figure":

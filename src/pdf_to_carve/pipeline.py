@@ -141,7 +141,11 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
     if selected == "text":
         if not is_pdf:
             raise ValueError("text mode supports PDF input only")
-        raw = extract_text(path, options.start_page, options.end_page)
+        raw = (
+            pdfium_extract_text(path, options.start_page, options.end_page, options.assets_dir)
+            if options.pdf_backend == "pdfium"
+            else extract_text(path, options.start_page, options.end_page)
+        )
     else:
         if options.dpi < 72 or options.dpi > 400:
             raise ValueError("dpi must be between 72 and 400")

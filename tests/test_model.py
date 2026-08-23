@@ -36,6 +36,20 @@ def test_document_round_trips_public_json() -> None:
                 "version": 1,
                 "blocks": [
                     {
+                        "type": "table",
+                        "headers": [[], []],
+                        "alignments": ["right"],
+                        "rows": [],
+                    }
+                ],
+            },
+            "one entry per column",
+        ),
+        (
+            {
+                "version": 1,
+                "blocks": [
+                    {
                         "type": "list",
                         "items": [
                             {"content": []},

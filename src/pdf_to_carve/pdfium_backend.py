@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ctypes
 import hashlib
+import json
 import re
 import statistics
 from pathlib import Path
@@ -315,6 +316,127 @@ def _is_simple_table(rows: list[list[dict[str, Any]]], start: int, body_size: fl
     return end - start if end - start >= 3 else 0
 
 
+def _table_alignments(rows: list[list[dict[str, Any]]], body_size: float) -> list[str]:
+    """Infer column alignment only when one geometric edge is clearly more stable."""
+    result = []
+    for column in zip(*rows, strict=True):
+        lefts = [item["bbox"][0] for item in column]
+        rights = [item["bbox"][2] for item in column]
+        centers = [(left + right) / 2 for left, right in zip(lefts, rights, strict=True)]
+        spreads = {
+            "left": max(lefts) - min(lefts),
+            "right": max(rights) - min(rights),
+            "center": max(centers) - min(centers),
+        }
+        best = min(spreads, key=spreads.get)  # type: ignore[arg-type]
+        alternatives = sorted(spreads.values())
+        confident = (
+            alternatives[0] <= body_size * 0.4
+            and alternatives[1] - alternatives[0] >= body_size * 0.25
+        )
+        result.append(best if confident else "left")
+    return result
+
+
+def _inside(inner: list[float], outer: list[float], tolerance: float = 1.0) -> bool:
+    return (
+        inner[0] >= outer[0] - tolerance
+        and inner[1] >= outer[1] - tolerance
+        and inner[2] <= outer[2] + tolerance
+        and inner[3] <= outer[3] + tolerance
+    )
+
+
+def _vector_figure_regions(
+    page: pdfium.PdfPage,
+    items: list[dict[str, Any]],
+    body_size: float,
+    output_dir: Path | None,
+    page_number: int,
+) -> list[dict[str, Any]]:
+    """Preserve obvious multi-part vector artwork as cropped local PNG figures."""
+    if output_dir is None:
+        return []
+    page_width, _ = page.get_size()
+    paths = _page_paths(page)
+    candidates = []
+    for bounds in paths:
+        width = bounds[2] - bounds[0]
+        height = bounds[3] - bounds[1]
+        enclosed = [path for path in paths if _inside(path, bounds)]
+        labels = [item for item in items if _inside(item["bbox"], bounds)]
+        if (
+            width >= page_width * 0.35
+            and height >= body_size * 4
+            and len(enclosed) >= 5
+            and len(labels) >= 2
+            and not all(label["monospace"] for label in labels)
+        ):
+            candidates.append((bounds, labels))
+    # Keep outer regions only; nested paths are components of the same figure.
+    regions = [
+        candidate
+        for candidate in candidates
+        if not any(
+            candidate[0] != other[0] and _inside(candidate[0], other[0]) for other in candidates
+        )
+    ]
+    if not regions:
+        return []
+    output_dir.mkdir(parents=True, exist_ok=True)
+    bitmap = page.render(scale=2, rev_byteorder=True)
+    try:
+        page_image = bitmap.to_pil().convert("RGB")
+    finally:
+        bitmap.close()
+    result = []
+    for figure_number, (bounds, labels) in enumerate(regions, 1):
+        padding = body_size * 0.3
+        crop = [
+            max(0, int((bounds[0] - padding) * 2)),
+            max(0, int((bounds[1] - padding) * 2)),
+            min(page_image.width, int((bounds[2] + padding) * 2 + 0.999)),
+            min(page_image.height, int((bounds[3] + padding) * 2 + 0.999)),
+        ]
+        target = output_dir / f"page-{page_number}-vector-{figure_number}.png"
+        page_image.crop(tuple(crop)).save(target)
+        alt = ", ".join(label["text"].strip() for label in labels if label["text"].strip())
+        result.append(
+            {
+                "bbox": bounds,
+                "block": {"type": "figure", "src": f"{output_dir.name}/{target.name}", "alt": alt},
+            }
+        )
+    return result
+
+
+def _infer_code_language(text: str) -> str | None:
+    """Return a language only for combinations of strongly identifying syntax."""
+    if re.search(r"<\?php\b", text, re.I) or (
+        re.search(r"\$[A-Za-z_]\w*", text)
+        and re.search(r"\b(?:function|class|namespace|use)\b|->|::", text)
+    ):
+        return "php"
+    if re.search(r"^\s*(?:async\s+)?def\s+[A-Za-z_]\w*\s*\([^\n]*\)\s*:", text, re.M):
+        return "python"
+    if re.search(r"\b(?:const|let|var)\s+[A-Za-z_$]", text) and re.search(
+        r"=>|\b(?:function|import|export)\b", text
+    ):
+        return "javascript"
+    if re.search(r"^\s*SELECT\b", text, re.I | re.M) and re.search(r"\bFROM\b", text, re.I):
+        return "sql"
+    if text.startswith("#!") and re.search(r"\b(?:ba|z|fi)?sh\b", text.splitlines()[0]):
+        return "bash"
+    try:
+        parsed = json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        pass
+    else:
+        if isinstance(parsed, (dict, list)):
+            return "json"
+    return None
+
+
 def _unordered_list_height(
     rows: list[list[dict[str, Any]]], start: int, body_size: float, left_margin: float
 ) -> int:
@@ -340,7 +462,9 @@ def _unordered_list_height(
     return end - start if end - start >= 3 else 0
 
 
-def extract_text_pdf(path: Path, start: int = 1, end: int | None = None) -> dict[str, Any]:
+def extract_text_pdf(
+    path: Path, start: int = 1, end: int | None = None, assets_dir: Path | None = None
+) -> dict[str, Any]:
     document = pdfium.PdfDocument(path)
     try:
         pages = list(_range(document, start, end))
@@ -349,6 +473,12 @@ def extract_text_pdf(path: Path, start: int = 1, end: int | None = None) -> dict
         body_size = statistics.median(sizes) if sizes else 11.0
         blocks = []
         all_rows = [_visual_rows(page, body_size) for page in objects]
+        figure_regions = [
+            _vector_figure_regions(
+                document[number], objects[index], body_size, assets_dir, number + 1
+            )
+            for index, number in enumerate(pages)
+        ]
         heading_levels = _heading_levels([row for page in all_rows for row in page], body_size)
         ordered = re.compile(r"^(\d+)[.)]\s*(.+)$")
         for page_index, rows in enumerate(all_rows):
@@ -365,6 +495,19 @@ def extract_text_pdf(path: Path, start: int = 1, end: int | None = None) -> dict
             index = 0
             while index < len(rows):
                 row = rows[index]
+                figure = next(
+                    (
+                        region
+                        for region in figure_regions[page_index]
+                        if any(_inside(item["bbox"], region["bbox"]) for item in row)
+                    ),
+                    None,
+                )
+                if figure is not None:
+                    if not blocks or blocks[-1] != figure["block"]:
+                        blocks.append(figure["block"])
+                    index += 1
+                    continue
                 table_height = _is_simple_table(rows, index, body_size)
                 if table_height:
                     table_rows = rows[index : index + table_height]
@@ -372,6 +515,7 @@ def extract_text_pdf(path: Path, start: int = 1, end: int | None = None) -> dict
                         {
                             "type": "table",
                             "headers": [_content(item, styled=False) for item in table_rows[0]],
+                            "alignments": _table_alignments(table_rows, body_size),
                             "rows": [
                                 [_content(item) for item in table_row]
                                 for table_row in table_rows[1:]
@@ -443,7 +587,11 @@ def extract_text_pdf(path: Path, start: int = 1, end: int | None = None) -> dict
                             break
                         lines.append(candidate["text"])
                         index += 1
-                    blocks.append({"type": "code_block", "text": "\n".join(lines)})
+                    text = "\n".join(lines)
+                    block = {"type": "code_block", "text": text}
+                    if language := _infer_code_language(text):
+                        block["language"] = language
+                    blocks.append(block)
                     continue
                 while index + 1 < len(rows) and len(rows[index + 1]) == 1:
                     following = rows[index + 1][0]

@@ -171,6 +171,10 @@
           "properties": {
             "type": {"const": "table"},
             "headers": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/inlines"}},
+            "alignments": {
+              "type": "array",
+              "items": {"enum": ["left", "right", "center"]}
+            },
             "rows": {"type": "array", "items": {"type": "array", "items": {"$ref": "#/$defs/tableCell"}}},
             "caption": {"$ref": "#/$defs/inlines"}
           }

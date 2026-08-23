@@ -9,6 +9,10 @@
   unordered and ordered lists, monospaced code blocks, and simple table grids.
 - Recover external link annotations, geometrically supported underline and
   highlight decoration, and conservative indented quotations in text mode.
+- Infer strongly evidenced code languages and table-column alignment from text
+  syntax and stable visual edges.
+- Preserve obvious multi-part vector figures as cropped local PNG assets with
+  alternative text derived only from their visible labels.
 - Supply PDF link destinations to hybrid extraction and strengthen visual
   guidance for code indentation, decoration, quotations, and diagrams.
 
@@ -18,6 +22,7 @@
   Carve headings, lists, quotes, containers, tables, or thematic breaks.
 - Emit canonical no-space code-fence info strings and padded table header cells,
   and leave single percentage signs unescaped while protecting `%%` comments.
+- Emit native Carve table-alignment markers from the extraction model.
 
 ## 0.1.0 - 2026-08-12
 

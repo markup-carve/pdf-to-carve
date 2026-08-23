@@ -28,7 +28,7 @@ This is a separate paragraph. The vertical space above it should prevent both pa
 
 ## Code
 
-```
+```php
 function greet(string $name): string {
 return "Hello, {$name}!";
 }
@@ -37,7 +37,7 @@ return "Hello, {$name}!";
 ## Simple table
 
 | Region | Revenue | Growth |
-| --- | --- | --- |
+| --- | ---: | ---: |
 | North | 1,240 | 13.7% |
 | South | 980 | 4.1% |
 | Total | 2,220 | 9.5% |
@@ -54,6 +54,6 @@ The next lines are literal text, not Markdown constructs:
 
 ## Image
 
-Plan Build Ship
+![Plan, Build, Ship](assets/page-2-vector-1.png)
 
 The image above uses standard Markdown image syntax with useful alternative text.

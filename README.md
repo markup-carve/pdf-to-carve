@@ -144,11 +144,15 @@ escaping. The contract can evolve by adding a new version.
   to recover headings, wrapped paragraphs, conservative lists and simple tables,
   monospaced code blocks, bold/italic runs, super/subscript, external link
   annotations, geometrically supported underline/highlight, and conservative
-  indented quotations. It does not yet reconstruct images, columns, code
-  indentation or language, or tables with spans.
+  indented quotations. It conservatively infers strongly evidenced code
+  languages and table alignment. With `--assets-dir`, it also preserves obvious
+  multi-part vector figures as cropped PNGs with visible-label alt text. It does
+  not invent code indentation, reconstruct arbitrary diagram semantics, detect
+  columns, or handle tables with spans.
 - Vision accuracy and cost depend on the selected provider and model.
-- `--assets-dir` extracts and deduplicates embedded raster images. Figure cropping
-  and exact model-placeholder matching remain manual review steps.
+- `--assets-dir` extracts and deduplicates embedded raster images. The PDFium
+  text path additionally crops clear multi-part vector figures; ambiguous figure
+  regions and exact provider-placeholder matching remain manual review steps.
 - Very large PDFs may exceed a provider's request limits. Select a page range.
 - PDF content is untrusted input. Review converted documents before publishing.
 

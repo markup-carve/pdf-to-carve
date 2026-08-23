@@ -149,7 +149,13 @@ def _block(block: Block) -> str:
             lines += f"\n^ {_inline(d['attribution'])}"
         return lines
     if block.type == "table":
-        rows = ["|= " + " |= ".join(_inline(cell, table=True) for cell in d["headers"]) + " |"]
+        markers = {"left": "", "right": ">", "center": "~"}
+        alignments = d.get("alignments", ("left",) * len(d["headers"]))
+        header = "".join(
+            f"|={markers[alignment]} {_inline(cell, table=True)} "
+            for cell, alignment in zip(d["headers"], alignments, strict=True)
+        )
+        rows = [header + "|"]
         rows.extend(_table_rows(d["rows"], len(d["headers"])))
         if "caption" in d:
             rows.append(f"^ {_inline(d['caption'])}")

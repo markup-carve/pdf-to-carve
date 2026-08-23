@@ -109,6 +109,7 @@ def test_pdfium_text_mode_recovers_conservative_document_structure(tmp_path: Pat
     assert blocks[6]["type"] == "list" and blocks[6]["ordered"] is True
     assert blocks[7]["type"] == "code_block"
     assert blocks[8]["type"] == "table"
+    assert blocks[8]["alignments"] == ["left", "left"]
 
 
 def test_pdfium_recovers_links_decorations_and_conservative_quotes(tmp_path: Path) -> None:
@@ -168,6 +169,26 @@ def test_pdfium_recovers_links_decorations_and_conservative_quotes(tmp_path: Pat
     assert linked["urls"] == ["https://example.com/docs"]
 
 
+def test_pdfium_infers_code_language_only_from_strong_syntax(tmp_path: Path) -> None:
+    pdf = tmp_path / "code.pdf"
+    document = pymupdf.open()
+    page = document.new_page(width=500, height=300)
+    page.insert_text((20, 30), "Code samples", fontsize=20, fontname="hebo")
+    page.insert_text(
+        (20, 60), "function greet(string $name): string {", fontsize=10, fontname="cour"
+    )
+    page.insert_text((20, 72), 'return "Hello, {$name}!";', fontsize=10, fontname="cour")
+    page.insert_text((20, 84), "}", fontsize=10, fontname="cour")
+    page.insert_text((20, 102), "Between samples.", fontsize=10)
+    page.insert_text((20, 120), "plain monospace prose", fontsize=10, fontname="cour")
+    document.save(pdf)
+    document.close()
+
+    code = [block for block in extract_text_pdf(pdf)["blocks"] if block["type"] == "code_block"]
+    assert code[0]["language"] == "php"
+    assert "language" not in code[1]
+
+
 def test_published_markdown_fixture_keeps_supported_pdf_semantics() -> None:
     pdf = Path(__file__).parents[1] / "docs/comparisons/php-pdfparser-v3.3.0/input.pdf"
     blocks = extract_text_pdf(pdf)["blocks"]
@@ -180,3 +201,20 @@ def test_published_markdown_fixture_keeps_supported_pdf_semantics() -> None:
         node for block in blocks for node in block.get("content", []) if node["type"] == "link"
     )
     assert link["url"] == "https://example.com/docs"
+    table = next(block for block in blocks if block["type"] == "table")
+    assert table["alignments"] == ["left", "right", "right"]
+    code = next(block for block in blocks if block["type"] == "code_block")
+    assert code["language"] == "php"
+
+
+def test_published_vector_figure_is_preserved_with_visible_labels(tmp_path: Path) -> None:
+    pdf = Path(__file__).parents[1] / "docs/comparisons/php-pdfparser-v3.3.0/input.pdf"
+    assets = tmp_path / "assets"
+    blocks = extract_text_pdf(pdf, assets_dir=assets)["blocks"]
+    figure = next(block for block in blocks if block["type"] == "figure")
+    assert figure == {
+        "type": "figure",
+        "src": "assets/page-2-vector-1.png",
+        "alt": "Plan, Build, Ship",
+    }
+    assert (assets / "page-2-vector-1.png").is_file()

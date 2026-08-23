@@ -13,8 +13,16 @@
   syntax and stable visual edges.
 - Preserve obvious multi-part vector figures as cropped local PNG assets with
   alternative text derived only from their visible labels.
+- Place embedded raster figures in document order, associate explicit nearby
+  figure and table captions, and suppress repeated page furniture.
+- Recover strong two-column reading order, internal page links, rotated text,
+  and numeric superscript footnotes when their geometric evidence is complete.
 - Supply PDF link destinations to hybrid extraction and strengthen visual
   guidance for code indentation, decoration, quotations, and diagrams.
+- Reconcile hybrid repairs against deterministic text-mode output: wording
+  changes are rejected, code repairs may change whitespace only, existing table
+  alignment and asset references win, and semantic diagrams require confident
+  bounding-box provenance.
 
 ### Output
 

@@ -146,10 +146,17 @@ escaping. The contract can evolve by adding a new version.
   annotations, geometrically supported underline/highlight, and conservative
   indented quotations. It conservatively infers strongly evidenced code
   languages and table alignment. With `--assets-dir`, it also preserves obvious
-  multi-part vector figures as cropped PNGs with visible-label alt text. It does
-  not invent code indentation, reconstruct arbitrary diagram semantics, detect
-  columns, or handle tables with spans.
+  multi-part vector figures as cropped PNGs with visible-label alt text and
+  places embedded raster figures. Repeated headers, footers and page numbers,
+  strong two-column layouts, explicit captions, internal page links, rotated
+  text, and numeric superscript footnotes are handled conservatively. It does
+  not invent code indentation, reconstruct arbitrary diagram semantics, or
+  guess ambiguous or spanning table grids.
 - Vision accuracy and cost depend on the selected provider and model.
+- Hybrid mode uses deterministic text extraction as its trusted baseline. Model
+  wording changes are discarded; code may change whitespace only. Structural
+  diagrams require high-confidence positional provenance, while deterministic
+  table alignment and extracted asset references take precedence.
 - `--assets-dir` extracts and deduplicates embedded raster images. The PDFium
   text path additionally crops clear multi-part vector figures; ambiguous figure
   regions and exact provider-placeholder matching remain manual review steps.

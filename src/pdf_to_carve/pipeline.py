@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from .cache import JsonCache, cache_key
 from .extract import extract_text_pdf as pymupdf_extract_text
@@ -21,6 +21,7 @@ from .pdfium_backend import extract_text_pdf as pdfium_extract_text
 from .pdfium_backend import positioned_text as pdfium_positioned_text
 from .pdfium_backend import render_pages as pdfium_render_pages
 from .pdfium_backend import text_coverage as pdfium_text_coverage
+from .reconcile import reconcile_hybrid
 from .serialize import to_carve
 from .vision import (
     SYSTEM_PROMPT,
@@ -57,6 +58,22 @@ class ConversionResult:
     document: Document
     mode: str
     diagnostics: tuple[str, ...] = ()
+
+
+def _baseline_prompt(document: dict[str, Any], max_chars: int = 60_000) -> str:
+    """Return valid, bounded baseline JSON for visual repair guidance."""
+    envelope = {
+        key: value for key, value in document.items() if key not in {"blocks", "provenance"}
+    }
+    envelope["blocks"] = []
+    for block in document.get("blocks", []):
+        candidate = {**envelope, "blocks": [*envelope["blocks"], block]}
+        encoded = json.dumps(candidate, ensure_ascii=False, separators=(",", ":"))
+        if len(encoded) > max_chars:
+            envelope["truncated"] = True
+            break
+        envelope = candidate
+    return json.dumps(envelope, ensure_ascii=False, separators=(",", ":"))
 
 
 def _render_pages(
@@ -172,13 +189,25 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
                 )
             )
             context = None
+            baseline = None
             if selected == "hybrid":
                 if not is_pdf:
                     raise ValueError("hybrid mode supports PDF input only")
+                baseline = (
+                    pdfium_extract_text(
+                        path, options.start_page, options.end_page, options.assets_dir
+                    )
+                    if options.pdf_backend == "pdfium"
+                    else extract_text(path, options.start_page, options.end_page)
+                )
                 context = evidence_prompt(positioned(path, options.start_page, options.end_page))
+                baseline_json = _baseline_prompt(baseline)
+                context += f"\nTRUSTED TEXT-MODE BASELINE JSON:\n{baseline_json}"
                 context += (
-                    "\nFor hybrid extraction, include exactly one provenance entry per block, "
-                    "using the best matching page and any defensible bbox/confidence/warnings."
+                    "\nReturn a visually repaired document, preserving baseline wording exactly. "
+                    "Only whitespace in code may change. Include exactly one provenance entry per "
+                    "repaired or visually reconstructed block, using a defensible page, bbox, "
+                    "confidence, and warnings."
                 )
             cache = JsonCache(options.cache_dir) if options.cache_dir else None
             key = cache_key(
@@ -203,6 +232,8 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
                     )
                 if cache and options.use_cache:
                     cache.put(key, raw)
+            if selected == "hybrid" and baseline is not None:
+                raw = reconcile_hybrid(baseline, raw)
     if options.assets_dir and is_pdf:
         extract_images(path, options.assets_dir)
     document = Document.from_json(raw)

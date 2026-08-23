@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pymupdf
 import pytest
 
-from pdf_to_carve.pipeline import ConversionOptions, convert
+from pdf_to_carve.pipeline import ConversionOptions, _baseline_prompt, convert
 
 EMPTY = {"version": 1, "blocks": []}
 
@@ -28,6 +28,34 @@ def test_hybrid_supplies_positioned_text_and_reuses_cache(tmp_path: Path) -> Non
     assert first.mode == second.mode == "hybrid"
     assert transcribe.call_count == 1
     assert "searchable evidence" in transcribe.call_args.kwargs["context"]
+    assert "TRUSTED TEXT-MODE BASELINE JSON" in transcribe.call_args.kwargs["context"]
+
+
+def test_hybrid_keeps_deterministic_wording_when_visual_output_changes_it(tmp_path: Path) -> None:
+    pdf = tmp_path / "sample.pdf"
+    _pdf(pdf)
+    changed = {
+        "version": 1,
+        "blocks": [{"type": "paragraph", "content": [{"type": "text", "text": "Invented"}]}],
+    }
+    with patch("pdf_to_carve.pipeline.transcribe_images", return_value=changed):
+        result = convert(pdf, ConversionOptions(mode="hybrid", api_key="x"))
+    assert "searchable evidence" in result.source
+    assert "Invented" not in result.source
+
+
+def test_hybrid_baseline_prompt_is_bounded_valid_json() -> None:
+    document = {
+        "version": 1,
+        "blocks": [
+            {"type": "paragraph", "content": [{"type": "text", "text": "x" * 100}]}
+            for _ in range(10)
+        ],
+    }
+    encoded = _baseline_prompt(document, max_chars=250)
+    decoded = __import__("json").loads(encoded)
+    assert decoded["truncated"] is True
+    assert len(encoded) <= 250
 
 
 def test_hybrid_supplies_pdf_link_destinations_as_evidence(tmp_path: Path) -> None:

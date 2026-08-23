@@ -27,13 +27,22 @@ def _page_links(page: pdfium.PdfPage) -> list[dict[str, Any]]:
                 continue
             link = pdfium.raw.FPDFAnnot_GetLink(annotation)
             action = pdfium.raw.FPDFLink_GetAction(link) if link else None
-            if not action or pdfium.raw.FPDFAction_GetType(action) != pdfium.raw.PDFACTION_URI:
-                continue
-            length = pdfium.raw.FPDFAction_GetURIPath(page.pdf.raw, action, None, 0)
-            if length <= 1 or length > 65_536:
-                continue
-            buffer = ctypes.create_string_buffer(length)
-            if not pdfium.raw.FPDFAction_GetURIPath(page.pdf.raw, action, buffer, length):
+            action_type = pdfium.raw.FPDFAction_GetType(action) if action else 0
+            url = None
+            if action and action_type == pdfium.raw.PDFACTION_URI:
+                length = pdfium.raw.FPDFAction_GetURIPath(page.pdf.raw, action, None, 0)
+                if length <= 1 or length > 65_536:
+                    continue
+                buffer = ctypes.create_string_buffer(length)
+                if not pdfium.raw.FPDFAction_GetURIPath(page.pdf.raw, action, buffer, length):
+                    continue
+                url = buffer.value.decode("utf-8", errors="replace")
+            elif action and action_type == pdfium.raw.PDFACTION_GOTO:
+                destination = pdfium.raw.FPDFAction_GetDest(page.pdf.raw, action)
+                target = pdfium.raw.FPDFDest_GetDestPageIndex(page.pdf.raw, destination)
+                if target >= 0:
+                    url = f"#page-{target + 1}"
+            if url is None:
                 continue
             rectangle = pdfium.raw.FS_RECTF()
             if not pdfium.raw.FPDFAnnot_GetRect(annotation, ctypes.byref(rectangle)):
@@ -46,7 +55,7 @@ def _page_links(page: pdfium.PdfPage) -> list[dict[str, Any]]:
                         float(rectangle.right),
                         height - float(rectangle.bottom),
                     ],
-                    "url": buffer.value.decode("utf-8", errors="replace"),
+                    "url": url,
                 }
             )
         finally:
@@ -195,9 +204,61 @@ def _objects(page: pdfium.PdfPage) -> list[dict[str, Any]]:
             if row["runs"]:
                 row["runs"][0]["text"] = row["runs"][0]["text"].lstrip()
                 row["runs"][-1]["text"] = row["runs"][-1]["text"].rstrip()
-        return rows
+        return _column_major_order(rows, page.get_width())
     finally:
         text_page.close()
+
+
+def _column_major_order(items: list[dict[str, Any]], page_width: float) -> list[dict[str, Any]]:
+    """Use column-major order only when two substantial text columns are evident."""
+    gutter_left = page_width * 0.47
+    gutter_right = page_width * 0.53
+    minimum_width = page_width * 0.18
+    left_evidence = [
+        item
+        for item in items
+        if item["bbox"][2] <= gutter_left and item["bbox"][2] - item["bbox"][0] >= minimum_width
+    ]
+    right_evidence = [
+        item
+        for item in items
+        if item["bbox"][0] >= gutter_right and item["bbox"][2] - item["bbox"][0] >= minimum_width
+    ]
+    if len(left_evidence) < 2 or len(right_evidence) < 2:
+        return items
+    band_top = max(
+        min(item["bbox"][1] for item in left_evidence),
+        min(item["bbox"][1] for item in right_evidence),
+    )
+    band_bottom = min(
+        max(item["bbox"][3] for item in left_evidence),
+        max(item["bbox"][3] for item in right_evidence),
+    )
+    if band_bottom <= band_top:
+        return items
+    before = [item for item in items if item["bbox"][3] < band_top]
+    left = [
+        item
+        for item in items
+        if item["bbox"][1] <= band_bottom and item["bbox"][2] <= gutter_left and item not in before
+    ]
+    right = [
+        item
+        for item in items
+        if item["bbox"][1] <= band_bottom and item["bbox"][0] >= gutter_right and item not in before
+    ]
+    used = {id(item) for item in before + left + right}
+    after = [item for item in items if id(item) not in used]
+
+    def key(item: dict[str, Any]) -> tuple[float, float]:
+        return item["bbox"][1], item["bbox"][0]
+
+    return (
+        sorted(before, key=key)
+        + sorted(left, key=key)
+        + sorted(right, key=key)
+        + sorted(after, key=key)
+    )
 
 
 def _visual_rows(items: list[dict[str, Any]], body_size: float) -> list[list[dict[str, Any]]]:
@@ -217,8 +278,51 @@ def _visual_rows(items: list[dict[str, Any]], body_size: float) -> list[list[dic
     return rows
 
 
+def _furniture_key(row: list[dict[str, Any]], page_height: float) -> str | None:
+    top = min(item["bbox"][1] for item in row)
+    bottom = max(item["bbox"][3] for item in row)
+    if top > page_height * 0.12 and bottom < page_height * 0.88:
+        return None
+    text = " ".join(item["text"].strip() for item in row if item["text"].strip())
+    if not text:
+        return None
+    normalized = re.sub(r"\b(?:page\s+)?\d+\b", "<page>", text.casefold()).strip()
+    region = "top" if top <= page_height * 0.12 else "bottom"
+    return f"{region}:{normalized}"
+
+
+def _repeated_furniture(
+    rows_by_page: list[list[list[dict[str, Any]]]], page_heights: list[float]
+) -> set[str]:
+    pages_by_key: dict[str, set[int]] = {}
+    for page_index, rows in enumerate(rows_by_page):
+        for row in rows:
+            if key := _furniture_key(row, page_heights[page_index]):
+                pages_by_key.setdefault(key, set()).add(page_index)
+    return {key for key, pages in pages_by_key.items() if len(pages) >= 2}
+
+
+def _footnote_definitions(
+    rows: list[list[dict[str, Any]]], page_height: float
+) -> tuple[dict[str, str], set[int]]:
+    definitions = {}
+    consumed = set()
+    for row in rows:
+        if len(row) != 1 or row[0]["bbox"][1] < page_height * 0.72:
+            continue
+        match = re.match(r"^(\d{1,3})[.)]?\s+(.{3,})$", row[0]["text"].strip())
+        if match:
+            definitions[match.group(1)] = match.group(2).strip()
+            consumed.add(id(row))
+    return definitions, consumed
+
+
 def _content(
-    item: dict[str, Any], *, styled: bool = True, suppress_italic: bool = False
+    item: dict[str, Any],
+    *,
+    styled: bool = True,
+    suppress_italic: bool = False,
+    footnotes: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     if not styled:
         return [{"type": "text", "text": item["text"].strip()}]
@@ -259,7 +363,13 @@ def _content(
         if baseline_center is not None and run["size"] <= item["size"] * 0.8:
             center = (run["bbox"][1] + run["bbox"][3]) / 2
             kind = "superscript" if center < baseline_center else "subscript"
-            node = {"type": kind, "children": [node]}
+            if kind == "superscript" and footnotes and text.strip() in footnotes:
+                node = {
+                    "type": "footnote",
+                    "children": [{"type": "text", "text": footnotes[text.strip()]}],
+                }
+            else:
+                node = {"type": kind, "children": [node]}
         elif run["italic"] and not suppress_italic:
             node = {"type": "emphasis", "children": [node]}
         if run["bold"]:
@@ -410,6 +520,61 @@ def _vector_figure_regions(
     return result
 
 
+def _raster_figure_regions(
+    page: pdfium.PdfPage, output_dir: Path | None, page_number: int
+) -> list[dict[str, Any]]:
+    """Extract each placed raster object together with its document position."""
+    if output_dir is None:
+        return []
+    output_dir.mkdir(parents=True, exist_ok=True)
+    height = page.get_height()
+    result = []
+    for figure_number, item in enumerate(
+        page.get_objects(filter=(pdfium.raw.FPDF_PAGEOBJ_IMAGE,), max_depth=8), 1
+    ):
+        left, bottom, right, top = item.get_bounds()
+        bitmap = item.get_bitmap(render=True, scale_to_original=True)
+        try:
+            image = bitmap.to_pil().convert("RGB")
+        finally:
+            bitmap.close()
+        target = output_dir / f"page-{page_number}-raster-{figure_number}.png"
+        image.save(target)
+        result.append(
+            {
+                "bbox": [left, height - top, right, height - bottom],
+                "block": {"type": "figure", "src": f"{output_dir.name}/{target.name}", "alt": ""},
+            }
+        )
+    return result
+
+
+def _attach_figure_captions(
+    figures: list[dict[str, Any]], rows: list[list[dict[str, Any]]], body_size: float
+) -> set[int]:
+    consumed: set[int] = set()
+    for figure in figures:
+        bottom = figure["bbox"][3]
+        candidates = [
+            row
+            for row in rows
+            if id(row) not in consumed
+            and len(row) == 1
+            and 0 <= row[0]["bbox"][1] - bottom <= body_size * 1.8
+        ]
+        if not candidates:
+            continue
+        row = min(candidates, key=lambda value: value[0]["bbox"][1])
+        item = row[0]
+        is_caption = bool(re.match(r"^(?:figure|fig\.)\s*\d*\s*[:.]", item["text"], re.I)) or (
+            item["runs"] and all(run["italic"] for run in item["runs"] if run["text"].strip())
+        )
+        if is_caption:
+            figure["block"]["caption"] = _content(item, suppress_italic=True)
+            consumed.add(id(row))
+    return consumed
+
+
 def _infer_code_language(text: str) -> str | None:
     """Return a language only for combinations of strongly identifying syntax."""
     if re.search(r"<\?php\b", text, re.I) or (
@@ -473,13 +638,27 @@ def extract_text_pdf(
         body_size = statistics.median(sizes) if sizes else 11.0
         blocks = []
         all_rows = [_visual_rows(page, body_size) for page in objects]
+        page_heights = [document[number].get_height() for number in pages]
+        repeated_furniture = _repeated_furniture(all_rows, page_heights)
         figure_regions = [
-            _vector_figure_regions(
-                document[number], objects[index], body_size, assets_dir, number + 1
+            sorted(
+                _vector_figure_regions(
+                    document[number], objects[index], body_size, assets_dir, number + 1
+                )
+                + _raster_figure_regions(document[number], assets_dir, number + 1),
+                key=lambda region: (region["bbox"][1], region["bbox"][0]),
             )
             for index, number in enumerate(pages)
         ]
         heading_levels = _heading_levels([row for page in all_rows for row in page], body_size)
+        target_pages = {
+            int(run["url"].removeprefix("#page-"))
+            for page in objects
+            for item in page
+            for run in item["runs"]
+            if re.fullmatch(r"#page-\d+", run.get("url", ""))
+        }
+        anchored_pages: set[int] = set()
         ordered = re.compile(r"^(\d+)[.)]\s*(.+)$")
         for page_index, rows in enumerate(all_rows):
             if page_index:
@@ -493,8 +672,22 @@ def extract_text_pdf(
                 default=0.0,
             )
             index = 0
+            emitted_figures: set[int] = set()
+            footnotes, footnote_rows = _footnote_definitions(rows, page_heights[page_index])
+            caption_rows = _attach_figure_captions(figure_regions[page_index], rows, body_size)
             while index < len(rows):
                 row = rows[index]
+                if id(row) in caption_rows or id(row) in footnote_rows:
+                    index += 1
+                    continue
+                row_top = min(item["bbox"][1] for item in row)
+                for figure_index, region in enumerate(figure_regions[page_index]):
+                    if figure_index not in emitted_figures and region["bbox"][3] < row_top:
+                        blocks.append(region["block"])
+                        emitted_figures.add(figure_index)
+                if _furniture_key(row, page_heights[page_index]) in repeated_furniture:
+                    index += 1
+                    continue
                 figure = next(
                     (
                         region
@@ -504,24 +697,34 @@ def extract_text_pdf(
                     None,
                 )
                 if figure is not None:
-                    if not blocks or blocks[-1] != figure["block"]:
+                    figure_index = figure_regions[page_index].index(figure)
+                    if figure_index not in emitted_figures:
                         blocks.append(figure["block"])
+                        emitted_figures.add(figure_index)
                     index += 1
                     continue
                 table_height = _is_simple_table(rows, index, body_size)
                 if table_height:
                     table_rows = rows[index : index + table_height]
-                    blocks.append(
-                        {
-                            "type": "table",
-                            "headers": [_content(item, styled=False) for item in table_rows[0]],
-                            "alignments": _table_alignments(table_rows, body_size),
-                            "rows": [
-                                [_content(item) for item in table_row]
-                                for table_row in table_rows[1:]
-                            ],
-                        }
-                    )
+                    table = {
+                        "type": "table",
+                        "headers": [_content(item, styled=False) for item in table_rows[0]],
+                        "alignments": _table_alignments(table_rows, body_size),
+                        "rows": [
+                            [_content(item, footnotes=footnotes) for item in table_row]
+                            for table_row in table_rows[1:]
+                        ],
+                    }
+                    caption_index = index + table_height
+                    if caption_index < len(rows) and len(rows[caption_index]) == 1:
+                        caption = rows[caption_index][0]
+                        gap = caption["bbox"][1] - max(item["bbox"][3] for item in table_rows[-1])
+                        if gap <= body_size * 1.8 and re.match(
+                            r"^table\s*\d*\s*[:.]", caption["text"], re.I
+                        ):
+                            table["caption"] = _content(caption, suppress_italic=True)
+                            table_height += 1
+                    blocks.append(table)
                     index += table_height
                     continue
                 if len(row) != 1:
@@ -534,9 +737,16 @@ def extract_text_pdf(
                 item = row[0]
                 level = heading_levels.get(round(item["size"], 1))
                 if level is not None:
-                    blocks.append(
-                        {"type": "heading", "level": level, "content": _content(item, styled=False)}
-                    )
+                    heading = {
+                        "type": "heading",
+                        "level": level,
+                        "content": _content(item, styled=False),
+                    }
+                    page_number = pages[page_index] + 1
+                    if page_number in target_pages and page_number not in anchored_pages:
+                        heading["id"] = f"page-{page_number}"
+                        anchored_pages.add(page_number)
+                    blocks.append(heading)
                     index += 1
                     continue
                 unordered_height = _unordered_list_height(rows, index, body_size, left_margin)
@@ -546,7 +756,7 @@ def extract_text_pdf(
                             "type": "list",
                             "ordered": False,
                             "items": [
-                                {"content": _content(rows[row_index][0])}
+                                {"content": _content(rows[row_index][0], footnotes=footnotes)}
                                 for row_index in range(index, index + unordered_height)
                             ],
                         }
@@ -619,10 +829,13 @@ def extract_text_pdf(
                 blocks.append(
                     {
                         "type": "quote" if is_quote else "paragraph",
-                        "content": _content(item, suppress_italic=is_quote),
+                        "content": _content(item, suppress_italic=is_quote, footnotes=footnotes),
                     }
                 )
                 index += 1
+            for figure_index, region in enumerate(figure_regions[page_index]):
+                if figure_index not in emitted_figures:
+                    blocks.append(region["block"])
         metadata = document.get_metadata_dict()
         result: dict[str, Any] = {"version": 1, "blocks": blocks}
         if metadata.get("Title", "").strip():

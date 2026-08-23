@@ -52,6 +52,27 @@ def test_pdfium_extracts_and_deduplicates_images(tmp_path: Path) -> None:
     assert assets[0].suffix == ".png"
 
 
+def test_pdfium_places_raster_figure_and_attaches_explicit_caption(tmp_path: Path) -> None:
+    pixmap = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 8, 8), False)
+    pixmap.clear_with(0x336699)
+    image = tmp_path / "source.png"
+    pixmap.save(image)
+    pdf = tmp_path / "placed.pdf"
+    document = pymupdf.open()
+    page = document.new_page(width=300, height=240)
+    page.insert_text((20, 30), "Before image", fontsize=10)
+    page.insert_image(pymupdf.Rect(20, 60, 120, 140), filename=image)
+    page.insert_text((20, 155), "Figure 1: Blue sample", fontsize=9, fontname="heit")
+    page.insert_text((20, 190), "After image", fontsize=10)
+    document.save(pdf)
+    document.close()
+
+    blocks = extract_text_pdf(pdf, assets_dir=tmp_path / "assets")["blocks"]
+    assert [block["type"] for block in blocks] == ["paragraph", "figure", "paragraph"]
+    assert blocks[1]["src"] == "assets/page-1-raster-1.png"
+    assert blocks[1]["caption"][0]["text"] == "Figure 1: Blue sample"
+
+
 def test_pdfium_page_limits_fail_closed(tmp_path: Path) -> None:
     pdf = tmp_path / "input.pdf"
     _pdf(pdf)
@@ -61,6 +82,84 @@ def test_pdfium_page_limits_fail_closed(tmp_path: Path) -> None:
         assert "maximum is 0" in str(exc)
     else:
         raise AssertionError("page limit was not enforced")
+
+
+def test_pdfium_suppresses_repeated_headers_footers_and_page_numbers(tmp_path: Path) -> None:
+    pdf = tmp_path / "furniture.pdf"
+    document = pymupdf.open()
+    for number in (1, 2):
+        page = document.new_page(width=400, height=500)
+        page.insert_text((20, 25), "Quarterly report", fontsize=9)
+        page.insert_text((20, 100), f"Unique body {number}", fontsize=11)
+        page.insert_text((180, 485), f"Page {number}", fontsize=9)
+    document.save(pdf)
+    document.close()
+
+    source = extract_text_pdf(pdf)
+    text = str(source)
+    assert "Quarterly report" not in text
+    assert "Page 1" not in text and "Page 2" not in text
+    assert "Unique body 1" in text and "Unique body 2" in text
+
+
+def test_pdfium_uses_column_major_reading_order_for_substantial_columns(tmp_path: Path) -> None:
+    pdf = tmp_path / "columns.pdf"
+    document = pymupdf.open()
+    page = document.new_page(width=500, height=400)
+    page.insert_text((20, 30), "Two column article", fontsize=20, fontname="hebo")
+    for y, left, right in (
+        (80, "Left column first line has enough width.", "Right column first line has width."),
+        (94, "Left column second line continues here.", "Right column second line continues."),
+    ):
+        page.insert_text((20, y), left, fontsize=10)
+        page.insert_text((270, y), right, fontsize=10)
+    document.save(pdf)
+    document.close()
+
+    blocks = extract_text_pdf(pdf)["blocks"]
+    values = [block.get("content", [{}])[0].get("text", "") for block in blocks]
+    assert values == [
+        "Two column article",
+        "Left column first line has enough width. Left column second line continues here.",
+        "Right column first line has width. Right column second line continues.",
+    ]
+
+
+def test_pdfium_preserves_rotated_text_as_content(tmp_path: Path) -> None:
+    pdf = tmp_path / "rotated.pdf"
+    document = pymupdf.open()
+    page = document.new_page(width=300, height=300)
+    page.insert_text((30, 100), "Normal body text", fontsize=10)
+    page.insert_text((250, 250), "Rotated label", fontsize=10, rotate=90)
+    document.save(pdf)
+    document.close()
+
+    assert "Rotated label" in str(extract_text_pdf(pdf))
+
+
+def test_pdfium_pairs_superscript_reference_with_bottom_footnote(tmp_path: Path) -> None:
+    pdf = tmp_path / "footnote.pdf"
+    document = pymupdf.open()
+    page = document.new_page(width=300, height=300)
+    page.insert_text((20, 80), "Claim", fontsize=10)
+    page.insert_text((47, 76), "1", fontsize=7)
+    page.insert_text((20, 270), "1 Footnote detail", fontsize=8)
+    document.save(pdf)
+    document.close()
+
+    blocks = extract_text_pdf(pdf)["blocks"]
+    assert blocks == [
+        {
+            "type": "paragraph",
+            "content": [
+                {"type": "text", "text": "Claim "},
+                {
+                    "type": "footnote",
+                    "children": [{"type": "text", "text": "Footnote detail"}],
+                },
+            ],
+        }
+    ]
 
 
 def test_pdfium_text_mode_recovers_conservative_document_structure(tmp_path: Path) -> None:
@@ -89,6 +188,7 @@ def test_pdfium_text_mode_recovers_conservative_document_structure(tmp_path: Pat
     ):
         page.insert_text((20, y), values[0], fontsize=10)
         page.insert_text((180, y), values[1], fontsize=10)
+    page.insert_text((20, 398), "Table 1: Values", fontsize=9, fontname="heit")
     document.save(pdf)
     document.close()
 
@@ -110,6 +210,7 @@ def test_pdfium_text_mode_recovers_conservative_document_structure(tmp_path: Pat
     assert blocks[7]["type"] == "code_block"
     assert blocks[8]["type"] == "table"
     assert blocks[8]["alignments"] == ["left", "left"]
+    assert blocks[8]["caption"][0]["text"] == "Table 1: Values"
 
 
 def test_pdfium_recovers_links_decorations_and_conservative_quotes(tmp_path: Path) -> None:
@@ -167,6 +268,35 @@ def test_pdfium_recovers_links_decorations_and_conservative_quotes(tmp_path: Pat
     evidence = positioned_text(pdf)
     linked = next(item for item in evidence if item["text"] == link_text)
     assert linked["urls"] == ["https://example.com/docs"]
+
+
+def test_pdfium_resolves_internal_goto_links_to_target_heading(tmp_path: Path) -> None:
+    pdf = tmp_path / "internal-link.pdf"
+    document = pymupdf.open()
+    first = document.new_page(width=400, height=300)
+    first.insert_text((20, 30), "Contents", fontsize=20, fontname="hebo")
+    first.insert_text((20, 70), "Read details", fontsize=10)
+    first.insert_text((20, 100), "Introduction body text", fontsize=10)
+    second = document.new_page(width=400, height=300)
+    second.insert_text((20, 30), "Details", fontsize=20, fontname="hebo")
+    second.insert_text((20, 70), "Detailed body text", fontsize=10)
+    first = document[0]
+    first.insert_link(
+        {
+            "kind": pymupdf.LINK_GOTO,
+            "from": pymupdf.Rect(20, 58, 90, 74),
+            "page": 1,
+            "to": pymupdf.Point(20, 30),
+        }
+    )
+    document.save(pdf)
+    document.close()
+
+    blocks = extract_text_pdf(pdf)["blocks"]
+    link = blocks[1]["content"][0]
+    assert link["type"] == "link" and link["url"] == "#page-2"
+    details = next(block for block in blocks if block.get("id") == "page-2")
+    assert details["content"][0]["text"] == "Details"
 
 
 def test_pdfium_infers_code_language_only_from_strong_syntax(tmp_path: Path) -> None:

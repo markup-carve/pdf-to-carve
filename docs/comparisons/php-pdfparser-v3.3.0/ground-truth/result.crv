@@ -1,0 +1,63 @@
+---yaml
+pageBreaks: none
+footer: ""
+---
+
+# Markdown Extraction Test
+
+This document checks whether a PDF extractor can recover ordinary Markdown structure without relying on complex Carve features.
+
+Text can be *bold*, /italic/, or /*bold and italic*/. It can also contain a [visible link](https://example.com/docs).
+
+The extended formatting line contains _underlined text_, =highlighted text=, superscript{^note^}, and subscript{,index,}.
+
+## Paragraphs
+
+This is the first paragraph. It wraps across more than one visual line in the PDF, but it should remain one paragraph in the extracted Markdown.
+
+This is a separate paragraph. The vertical space above it should prevent both paragraphs from being merged.
+
+## Lists
+
+- First unordered item
+- Second unordered item
+- Third unordered item
+
+1. First ordered item
+2. Second ordered item
+3. Third ordered item
+
+## Blockquote
+
+> Good extraction preserves the quotation as a blockquote instead of flattening it into an ordinary paragraph.
+
+## Code
+
+```php
+function greet(string $name): string {
+    return "Hello, {$name}!";
+}
+```
+
+## Simple table
+
+|= Region |=> Revenue |=> Growth |
+| North | 1,240 | 13.7% |
+| South | 980 | 4.1% |
+| Total | 2,220 | 9.5% |
+
+## Literal punctuation
+
+The next lines are literal text, not Markdown constructs:
+
+\# not a heading
+
+\- not a list item
+
+\*not emphasis\*, \_not emphasis\_, \[not a link\], 2 \| 3, C:\\docs\\file, and a \`backtick.
+
+## Image
+
+![Three labeled stages: Plan, Build, Ship](stages.svg)
+
+The image above uses standard Markdown image syntax with useful alternative text.

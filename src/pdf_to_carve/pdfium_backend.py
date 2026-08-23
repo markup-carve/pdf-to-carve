@@ -902,9 +902,7 @@ def extract_text_pdf(
             _footnote_definitions(rows, page_heights[index], body_size)
             for index, rows in enumerate(all_rows)
         ]
-        referenced_footnotes = {
-            label for page in objects for label in _footnote_references(page)
-        }
+        referenced_footnotes = {label for page in objects for label in _footnote_references(page)}
         footnote_counts: dict[str, int] = {}
         for definitions, _ in page_footnotes:
             for label in definitions:

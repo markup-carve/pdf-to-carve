@@ -26,6 +26,19 @@ def _escape_alt(text: str) -> str:
     )
 
 
+def _escape_url(url: str) -> str:
+    """Percent-encode the characters a Carve link destination cannot carry raw.
+
+    BOTH PARENTHESES, and the opening one is the reason this is a function. The
+    destination scan is balanced-paren-aware, so `.../Carve_(markup)` is already
+    a working URL - but encoding only the closing paren turns it into
+    `.../Carve_(markup%29`, whose `(` is now unbalanced, and the whole link
+    falls back to literal text. Escaping half a balanced pair is worse than
+    escaping neither.
+    """
+    return url.replace("\\", "%5C").replace("(", "%28").replace(")", "%29")
+
+
 def _escape_block_start(text: str) -> str:
     """Keep literal paragraph text from opening a Carve block."""
     if _BLOCK_START.match(text):
@@ -50,7 +63,7 @@ def _inline(nodes: tuple[Inline, ...], *, table: bool = False) -> str:
         elif node.type == "math":
             value = f"${_code_span(node.text)}"
         elif node.type == "link":
-            url = node.url.replace("\\", "%5C").replace(")", "%29") if node.url else ""
+            url = _escape_url(node.url) if node.url else ""
             value = f"[{_inline(node.children, table=table)}]({url})"
         elif node.type == "substitute":
             value = (
@@ -163,10 +176,16 @@ def _block(block: Block) -> str:
         return "\n".join(rows)
     if block.type == "figure":
         alt = _escape_alt(d["alt"])
-        src = d["src"].replace(")", "%29")
+        src = _escape_url(d["src"])
         result = f"![{alt}]({src})"
         if "id" in d:
-            result += f" {{#{d['id']}}}"
+            # ADJACENT, with no space. An inline attribute qualifies the element
+            # it touches; a space detaches it, and the braces then read as
+            # literal text around a `#word` tag. `![a](b) {#fig-1}` rendered as
+            # one paragraph holding an image, a stray tag and the caption line -
+            # no figure, no id, no caption - while `![a](b){#fig-1}` renders the
+            # figure the writer means.
+            result += f"{{#{d['id']}}}"
         if "caption" in d:
             result += f"\n^ {_inline(d['caption'])}"
         return result

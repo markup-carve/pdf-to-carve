@@ -41,6 +41,13 @@
 - Emit canonical no-space code-fence info strings and padded table header cells,
   and leave single percentage signs unescaped while protecting `%%` comments.
 - Emit native Carve table-alignment markers from the extraction model.
+- Bind a figure id to the image it names. The attribute was written one space
+  away, which detaches it: the braces became literal text, the id became a
+  `#word` tag, and the caption line never bound, so a figure with an id
+  rendered as none of those things.
+- Keep a link or asset path whose URL holds a parenthesis. Only the closing one
+  was encoded, which unbalanced a pair the destination scan already handled and
+  dropped the whole link to literal text.
 
 ## 0.1.0 - 2026-08-12
 

@@ -3,6 +3,17 @@ revision = 3
 requires-python = ">=3.10"
 
 [[package]]
+name = "carve-lang"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/9e/45e7e194c0f78ee3908540c03c76d316a67271ca930fae2ef485d5bac364/carve_lang-0.1.1.tar.gz", hash = "sha256:25ade7578ab1b6e2e63325e1da74f45366e4f9f22759daf5dc6dc82f753c13d6", size = 24020, upload-time = "2026-08-18T15:28:15.233Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f2/dc/243339b0d651e815e656557a3e855da0cb2d65df7a94817211e9b8be1c9b/carve_lang-0.1.1-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:d4407d8b4f90a072b8fd1206c92e591850e46a520a702c0f544af1c1b3eab404", size = 1118579, upload-time = "2026-08-18T15:28:11.721Z" },
+    { url = "https://files.pythonhosted.org/packages/01/b9/4c732a669e4e3c1081e32a4c000a27e3861183ee2d25b2461ef51478fd9b/carve_lang-0.1.1-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9c51f8bb263bd4b624ee1a59a6684764f6cc07d6ca72705ffc6e30983a0ac606", size = 1287477, upload-time = "2026-08-18T15:28:13.064Z" },
+    { url = "https://files.pythonhosted.org/packages/b9/aa/3951844cf1f2e447e712105791943bfe12da87b9ddd6389bc6a6e979b988/carve_lang-0.1.1-cp38-abi3-win_amd64.whl", hash = "sha256:c09cd3525bc5ad1b7b95584ad0c12d564c82d68105a8de130d88753ed94a5c62", size = 1101808, upload-time = "2026-08-18T15:28:14.177Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -185,6 +196,7 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "carve-lang" },
     { name = "pymupdf" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -196,6 +208,7 @@ pymupdf = [
 
 [package.metadata]
 requires-dist = [
+    { name = "carve-lang", marker = "extra == 'dev'", specifier = "==0.1.1" },
     { name = "pillow", specifier = ">=10,<13" },
     { name = "pymupdf", marker = "extra == 'dev'", specifier = ">=1.24,<2" },
     { name = "pymupdf", marker = "extra == 'pymupdf'", specifier = ">=1.24,<2" },

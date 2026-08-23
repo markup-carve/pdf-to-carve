@@ -16,7 +16,7 @@ def test_serializes_native_carve_without_markdown_stage() -> None:
     assert "`a|b`" in source
     assert "- [ ] first" in source
     assert "- [x] done" in source
-    assert "![Architecture](assets/page-1-figure-1.png) {#architecture}" in source
+    assert "![Architecture](assets/page-1-figure-1.png){#architecture}" in source
 
 
 def test_escapes_document_text_and_variable_code_fences() -> None:

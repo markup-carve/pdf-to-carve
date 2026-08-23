@@ -12,7 +12,7 @@ def test_serializes_native_carve_without_markdown_stage() -> None:
     assert source.startswith('---yaml\ntitle: "Example Document"')
     assert "{#results}\n# Results & discussion" in source
     assert "The *important* result is $`x^2`." in source
-    assert "|=Name|=Value|" in source
+    assert "|= Name |= Value |" in source
     assert "`a|b`" in source
     assert "- [ ] first" in source
     assert "- [x] done" in source
@@ -23,13 +23,16 @@ def test_escapes_document_text_and_variable_code_fences() -> None:
     raw = {
         "version": 1,
         "blocks": [
-            {"type": "paragraph", "content": [{"type": "text", "text": "literal * / _ ~ [ %"}]},
+            {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": "literal * / _ ~ [ 13.7% %% note"}],
+            },
             {"type": "code_block", "language": "txt", "text": "contains ``` inside"},
         ],
     }
     source = to_carve(Document.from_json(raw))
-    assert r"literal \* \/ \_ \~ \[ \%" in source
-    assert "```` txt\ncontains ``` inside\n````" in source
+    assert r"literal \* \/ \_ \~ \[ 13.7% \%% note" in source
+    assert "````txt\ncontains ``` inside\n````" in source
 
 
 def test_escapes_literal_block_openers_in_paragraphs() -> None:
@@ -66,6 +69,25 @@ def test_escapes_literal_block_openers_in_paragraphs() -> None:
         "\\| not a table\n\n"
         "\\---\n"
     )
+
+
+def test_escapes_comment_marker_split_across_text_nodes() -> None:
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {"type": "text", "text": "Shown: "},
+                        {"type": "text", "text": "%"},
+                        {"type": "text", "text": "% hidden"},
+                    ],
+                }
+            ],
+        }
+    )
+    assert to_carve(document) == "Shown: %\\% hidden\n"
 
 
 def test_page_break_uses_canonical_nonempty_container_layout() -> None:
@@ -122,7 +144,7 @@ def test_table_spans_emit_native_carve_placeholders() -> None:
         }
     )
     assert to_carve(document) == (
-        "|=Region|=Q1|=Q2|=Q3|\n"
+        "|= Region |= Q1 |= Q2 |= Q3 |\n"
         "| EMEA | 12 | 15 | 19 |\n"
         "| APAC | 8 | 11 | 22 |\n"
         "| ^ | 20 | < | 25 |\n"
@@ -178,4 +200,4 @@ def test_table_escapes_pipes_inside_nested_inline_nodes() -> None:
             ],
         }
     )
-    assert to_carve(document) == "|=a\\|b|\n| *a\\|b* |\n"
+    assert to_carve(document) == "|= a\\|b |\n| *a\\|b* |\n"

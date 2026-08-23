@@ -16,6 +16,8 @@
 
 - Escape literal block-opening punctuation before it can become unintended
   Carve headings, lists, quotes, containers, tables, or thematic breaks.
+- Emit canonical no-space code-fence info strings and padded table header cells,
+  and leave single percentage signs unescaped while protecting `%%` comments.
 
 ## 0.1.0 - 2026-08-12
 

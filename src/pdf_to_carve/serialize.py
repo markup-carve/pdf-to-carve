@@ -6,13 +6,14 @@ import re
 
 from .model import Block, Document, Inline
 
-_SPECIAL = re.compile(r"([\\/*_~=\[\]{}<>`%])")
+_SPECIAL = re.compile(r"([\\/*_~=\[\]{}<>`])")
 _BLOCK_START = re.compile(r"^(?:#{1,6} |[-+>:] |\||:::)")
 _ORDERED_BLOCK_START = re.compile(r"^([A-Za-z0-9]+)([.)]) ")
 
 
 def _escape(text: str) -> str:
-    return _SPECIAL.sub(r"\\\1", text).replace("\r", "").replace("\n", " ")
+    escaped = _SPECIAL.sub(r"\\\1", text).replace("\r", "").replace("\n", " ")
+    return escaped.replace("%%", r"\%%")
 
 
 def _escape_alt(text: str) -> str:
@@ -36,9 +37,12 @@ def _escape_block_start(text: str) -> str:
 
 def _inline(nodes: tuple[Inline, ...], *, table: bool = False) -> str:
     out = []
+    previous_text_ends_percent = False
     for node in nodes:
         if node.type == "text":
             value = _escape(node.text)
+            if previous_text_ends_percent and node.text.startswith("%"):
+                value = "\\" + value
             if table:
                 value = value.replace("|", r"\|")
         elif node.type == "code":
@@ -70,6 +74,7 @@ def _inline(nodes: tuple[Inline, ...], *, table: bool = False) -> str:
             opening, closing = marks[node.type]
             value = f"{opening}{_inline(node.children, table=table)}{closing}"
         out.append(value)
+        previous_text_ends_percent = node.type == "text" and node.text.endswith("%")
     return "".join(out)
 
 
@@ -134,7 +139,7 @@ def _block(block: Block) -> str:
         text = d["text"].rstrip("\n")
         longest = max((len(m.group()) for m in re.finditer(r"`+", text)), default=0)
         fence = "`" * max(3, longest + 1)
-        info = f" {d['language']}" if d.get("language") else ""
+        info = d.get("language", "")
         return f"{fence}{info}\n{text}\n{fence}"
     if block.type == "quote":
         lines = "\n".join(
@@ -144,7 +149,7 @@ def _block(block: Block) -> str:
             lines += f"\n^ {_inline(d['attribution'])}"
         return lines
     if block.type == "table":
-        rows = ["|=" + "|=".join(_inline(cell, table=True) for cell in d["headers"]) + "|"]
+        rows = ["|= " + " |= ".join(_inline(cell, table=True) for cell in d["headers"]) + " |"]
         rows.extend(_table_rows(d["rows"], len(d["headers"])))
         if "caption" in d:
             rows.append(f"^ {_inline(d['caption'])}")

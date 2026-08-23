@@ -11,7 +11,7 @@ An image resolves relative to the `.crv` file, via the injected `<base href>` :
 
 ## Table with row and column spans
 
-|=Region|=Q1|=Q2|=Q3|
+|= Region |= Q1 |= Q2 |= Q3 |
 | EMEA | 12 | 15 | 19 |
 | APAC | 8 | 11 | 22 |
 | ^ | 20 | < | 25 |

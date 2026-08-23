@@ -28,7 +28,7 @@ This is a separate paragraph. The vertical space above it should prevent both pa
 
 ## Code
 
-``` php
+```php
 function greet(string $name): string {
     return "Hello, {$name}!";
 }
@@ -36,10 +36,10 @@ function greet(string $name): string {
 
 ## Simple table
 
-|=Region|=Revenue|=Growth|
-| North | 1,240 | 13.7\% |
-| South | 980 | 4.1\% |
-| Total | 2,220 | 9.5\% |
+|= Region |= Revenue |= Growth |
+| North | 1,240 | 13.7% |
+| South | 980 | 4.1% |
+| Total | 2,220 | 9.5% |
 
 ## Literal punctuation
 
@@ -57,7 +57,7 @@ The next lines are literal text, not Markdown constructs:
 
 ## Image
 
-``` mermaid
+```mermaid
 flowchart LR
     Plan[Plan] --> Build[Build]
     Build --> Ship[Ship]

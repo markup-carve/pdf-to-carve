@@ -16,7 +16,7 @@ Another inline example: the quadratic roots $`x = (-b \pm \sqrt{b^2 - 4ac})/2a`.
 
 A flowchart, rendered to inline SVG by Mermaid:
 
-``` mermaid
+```mermaid
 flowchart LR
   Parse --> AST --> Render --> PDF
 ```
@@ -27,7 +27,7 @@ A second one, showing how the backends feed the same pipeline:
 
 :::
 
-``` mermaid
+```mermaid
 flowchart TD
   source[carve source] --> php[render.php]
   source --> mjs[render.mjs]
@@ -46,7 +46,7 @@ A `chart` fence carries a Chart.js config as JSON, drawn to a `<canvas>`:
 
 :::
 
-``` chart
+```chart
 {
   "type": "line",
   "data": {

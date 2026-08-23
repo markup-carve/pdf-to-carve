@@ -22,6 +22,8 @@ from pathlib import Path
 import carve
 import pytest
 
+from pdf_to_carve.pipeline import ConversionOptions, convert
+
 ROOT = Path(__file__).parents[1]
 SNAPSHOTS = sorted(
     [
@@ -51,4 +53,37 @@ def test_markdown_snapshot_matches_its_carve_source(source: Path) -> None:
         "pinned engine. Regenerate it - `python examples/render_markdown.py "
         "examples/*/result.crv` for the examples - and review the diff as part of "
         "whatever moved the engine."
+    )
+
+
+COMPARISON = ROOT / "docs" / "comparisons" / "php-pdfparser-v3.3.0"
+
+
+def test_the_comparison_carve_is_what_the_converter_writes_now(tmp_path: Path) -> None:
+    """The published comparison's own side regenerates from its input PDF.
+
+    The check above covers `.crv` to `.md`, and this covers the step before it.
+    Without it the artifact aged out of the writer within the hour: a change to
+    how ambiguous inline boundaries are spelled regenerated the examples and
+    left this file behind, and nothing said so, because the only thing reading
+    it renders it rather than producing it.
+
+    Text mode is deterministic and local - no model, no network - so this is the
+    same shape as `tests/test_pdf_corpus.py`, pointed at the document a
+    published capability table is read off.
+
+    `ours-hybrid/result.crv` is deliberately not here. It is a captured model
+    run with no saved extraction JSON, so there is nothing to regenerate it
+    from, and a test that cannot fail for the right reason is worse than none.
+    """
+    result = convert(
+        COMPARISON / "input.pdf",
+        ConversionOptions(mode="text", assets_dir=tmp_path / "assets"),
+    )
+    expected = (COMPARISON / "ours-text" / "result.crv").read_text(encoding="utf-8")
+    assert result.source == expected, (
+        "docs/comparisons/php-pdfparser-v3.3.0/ours-text/result.crv no longer "
+        "matches what the writer produces. Regenerate it with the command in "
+        "that directory's README and review the diff - the capability table "
+        "beside it is read off this file."
     )

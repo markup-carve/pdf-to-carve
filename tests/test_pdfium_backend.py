@@ -162,6 +162,18 @@ def test_pdfium_pairs_superscript_reference_with_bottom_footnote(tmp_path: Path)
     ]
 
 
+def test_pdfium_keeps_unreferenced_numbered_text_near_page_bottom(tmp_path: Path) -> None:
+    pdf = tmp_path / "numbered-bottom-text.pdf"
+    document = pymupdf.open()
+    page = document.new_page(width=300, height=300)
+    page.insert_text((20, 270), "1 Ordinary numbered content", fontsize=8)
+    document.save(pdf)
+    document.close()
+
+    blocks = extract_text_pdf(pdf)["blocks"]
+    assert "Ordinary numbered content" in str(blocks)
+
+
 def test_pdfium_pairs_footnote_definition_on_following_page(tmp_path: Path) -> None:
     pdf = tmp_path / "cross-page-footnote.pdf"
     document = pymupdf.open()

@@ -327,16 +327,16 @@ def _repeated_furniture(
 
 def _footnote_definitions(
     rows: list[list[dict[str, Any]]], page_height: float, body_size: float
-) -> tuple[dict[str, str], set[int]]:
+) -> tuple[dict[str, str], dict[str, set[int]]]:
     definitions = {}
-    consumed = set()
+    definition_rows: dict[str, set[int]] = {}
     for index, row in enumerate(rows):
         if len(row) != 1 or row[0]["bbox"][1] < page_height * 0.72:
             continue
         match = re.match(r"^(\d{1,3})[.)]?\s+(.{3,})$", row[0]["text"].strip())
         if match:
             parts = [match.group(2).strip()]
-            consumed.add(id(row))
+            rows_for_definition = {id(row)}
             previous = row[0]
             for following_row in rows[index + 1 :]:
                 if len(following_row) != 1:
@@ -350,10 +350,35 @@ def _footnote_definitions(
                 ):
                     break
                 parts.append(following["text"].strip())
-                consumed.add(id(following_row))
+                rows_for_definition.add(id(following_row))
                 previous = following
             definitions[match.group(1)] = " ".join(parts)
-    return definitions, consumed
+            definition_rows[match.group(1)] = rows_for_definition
+    return definitions, definition_rows
+
+
+def _footnote_references(items: list[dict[str, Any]]) -> set[str]:
+    """Return numeric labels carried by clearly raised, smaller text runs."""
+    labels = set()
+    for item in items:
+        normal_centers = [
+            (run["bbox"][1] + run["bbox"][3]) / 2
+            for run in item["runs"]
+            if run["size"] >= item["size"] * 0.9 and len(run["text"].strip()) > 1
+        ]
+        if not normal_centers:
+            continue
+        baseline_center = statistics.median(normal_centers)
+        for run in item["runs"]:
+            label = run["text"].strip()
+            center = (run["bbox"][1] + run["bbox"][3]) / 2
+            if (
+                re.fullmatch(r"\d{1,3}", label)
+                and run["size"] <= item["size"] * 0.8
+                and center < baseline_center
+            ):
+                labels.add(label)
+    return labels
 
 
 def _content(
@@ -877,6 +902,9 @@ def extract_text_pdf(
             _footnote_definitions(rows, page_heights[index], body_size)
             for index, rows in enumerate(all_rows)
         ]
+        referenced_footnotes = {
+            label for page in objects for label in _footnote_references(page)
+        }
         footnote_counts: dict[str, int] = {}
         for definitions, _ in page_footnotes:
             for label in definitions:
@@ -885,7 +913,7 @@ def extract_text_pdf(
             label: text
             for definitions, _ in page_footnotes
             for label, text in definitions.items()
-            if footnote_counts[label] == 1
+            if footnote_counts[label] == 1 and label in referenced_footnotes
         }
         column_pages = {
             pages[index] + 1: max(item.get("_column", 0) for item in page) + 1
@@ -927,7 +955,12 @@ def extract_text_pdf(
             index = 0
             emitted_figures: set[int] = set()
             footnotes = document_footnotes
-            footnote_rows = page_footnotes[page_index][1]
+            footnote_rows = {
+                row
+                for label, rows_for_definition in page_footnotes[page_index][1].items()
+                if label in document_footnotes
+                for row in rows_for_definition
+            }
             caption_rows = _attach_figure_captions(figure_regions[page_index], rows, body_size)
             while index < len(rows):
                 row = rows[index]

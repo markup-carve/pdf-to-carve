@@ -70,7 +70,7 @@ def _repair(
         return candidate if candidate.get("type") in {"code_block", "figure"} else None
     if len(baseline) == 1 and baseline[0]["type"] == candidate.get("type"):
         if candidate["type"] == "table" and baseline[0].get("alignments"):
-            candidate.setdefault("alignments", baseline[0]["alignments"])
+            candidate["alignments"] = baseline[0]["alignments"]
             return candidate
         if candidate["type"] == "figure":
             candidate["src"] = baseline[0]["src"]

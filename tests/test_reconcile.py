@@ -52,6 +52,32 @@ def test_hybrid_accepts_exact_structural_upgrade_and_keeps_table_alignment() -> 
     assert result["blocks"][0]["alignments"] == ["left", "right"]
 
 
+def test_hybrid_pdf_alignment_overrides_conflicting_visual_guess() -> None:
+    baseline = {
+        "version": 1,
+        "blocks": [
+            {
+                "type": "table",
+                "headers": [text("Name"), text("Value")],
+                "alignments": ["left", "right"],
+                "rows": [[text("A"), text("1")]],
+            }
+        ],
+    }
+    visual = {
+        "version": 1,
+        "blocks": [
+            {
+                "type": "table",
+                "headers": [text("Name"), text("Value")],
+                "alignments": ["center", "left"],
+                "rows": [[text("A"), text("1")]],
+            }
+        ],
+    }
+    assert reconcile_hybrid(baseline, visual)["blocks"][0]["alignments"] == ["left", "right"]
+
+
 def test_hybrid_requires_confident_geometry_for_semantic_diagram_upgrade() -> None:
     baseline = {"version": 1, "blocks": [{"type": "paragraph", "content": text("Plan Build Ship")}]}
     diagram = {"type": "code_block", "language": "mermaid", "text": "Plan --> Build --> Ship"}

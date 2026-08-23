@@ -17,12 +17,15 @@ The comparison in `docs/comparisons/` is covered too. Its own README names no
 version at all, and its `.md` files back a published capability table.
 """
 
+import json
 from pathlib import Path
 
 import carve
 import pytest
 
+from pdf_to_carve.model import Document, document_to_json
 from pdf_to_carve.pipeline import ConversionOptions, convert
+from pdf_to_carve.serialize import to_carve
 
 ROOT = Path(__file__).parents[1]
 SNAPSHOTS = sorted(
@@ -87,3 +90,27 @@ def test_the_comparison_carve_is_what_the_converter_writes_now(tmp_path: Path) -
         "that directory's README and review the diff - the capability table "
         "beside it is read off this file."
     )
+
+
+def test_the_hybrid_capture_replays_from_its_extraction_json() -> None:
+    """The captured hybrid result is regenerable, so it can go stale loudly.
+
+    It has no input a test can re-run - a model produced it - so it was the one
+    artifact here nothing could check, and it aged out of the writer twice
+    without complaint. Saving the extraction JSON beside it fixes that: the
+    document model is the durable half of a hybrid run, and `--from-json`
+    replays it with no second API call.
+
+    THE JSON IS RECONSTRUCTED FROM THE CAPTURED CARVE, not the provider
+    response, which was not kept. It carries the document and none of the
+    provenance, confidence or warning fields a live run records. What makes it
+    trustworthy is this check plus the diff it was born from: regenerating the
+    committed Carve from it reproduced all 66 lines except the two the writer's
+    own ambiguous-boundary change accounts for.
+    """
+    directory = ROOT / "docs" / "comparisons" / "php-pdfparser-v3.3.0" / "ours-hybrid"
+    raw = json.loads((directory / "extraction.json").read_text(encoding="utf-8"))
+    document = Document.from_json(raw)
+
+    assert document_to_json(document) == raw
+    assert to_carve(document) == (directory / "result.crv").read_text(encoding="utf-8")

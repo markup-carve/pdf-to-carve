@@ -22,6 +22,11 @@ requirements are not identical.
   official Carve Markdown writer.
 - [`ours-hybrid/result.crv`](ours-hybrid/result.crv): one captured hybrid result
   using rendered pages, positioned PDF evidence, and `gpt-5.6-sol`.
+- [`ours-hybrid/extraction.json`](ours-hybrid/extraction.json): that result's
+  document model, so the Carve beside it can be replayed with `--from-json` and
+  no second API call. RECONSTRUCTED from the captured Carve rather than kept
+  from the provider response, so it carries the document and none of the
+  provenance, confidence or warning fields a live run records.
 - [`ours-hybrid/result.md`](ours-hybrid/result.md): that hybrid result rendered
   through the official Carve Markdown writer. It is an additional reference,
   not part of the no-AI comparison.
@@ -43,10 +48,16 @@ python ../../../examples/render_markdown.py ours-text/result.crv
 ```
 
 Every `result.md` here is rendered by Carve's own Markdown writer through
-`carve-lang`, pinned in `pyproject.toml`, and `tests/test_example_snapshots.py`
-regenerates all four and fails when one stops matching its `.crv`. The step used
-to be an unversioned `carve --markdown`, which left the capability table below
-resting on whichever engine happened to be on the author's PATH.
+`carve-lang`, pinned in `pyproject.toml`. The step used to be an unversioned
+`carve --markdown`, which left the capability table below resting on whichever
+engine happened to be on the author's PATH.
+
+`tests/test_example_snapshots.py` regenerates each file from whatever produces
+it and fails when one stops matching: `ours-text/result.crv` from `input.pdf`,
+`ours-hybrid/result.crv` from its extraction JSON, and all four `result.md`
+from their Carve. `theirs/result.crv` is the exception - normalizing Markdown
+to Carve needs carve-js, which is not a dependency here, so that one is
+refreshed by hand.
 
 ## Result
 

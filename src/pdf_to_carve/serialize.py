@@ -187,4 +187,4 @@ def to_carve(document: Document) -> str:
     if frontmatter:
         sections.append(frontmatter)
     sections.extend(rendered for block in document.blocks if (rendered := _block(block)))
-    return "\n\n".join(sections).rstrip() + "\n"
+    return "\n\n".join(sections).rstrip() + "\n" if sections else ""

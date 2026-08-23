@@ -108,6 +108,36 @@ def test_pymupdf_remains_an_explicit_compatibility_backend(tmp_path: Path) -> No
     assert "searchable evidence" in result.source
 
 
+def test_text_mode_returns_an_empty_document_for_a_blank_page(tmp_path: Path) -> None:
+    pdf = tmp_path / "blank.pdf"
+    document = pymupdf.open()
+    document.new_page()
+    document.save(pdf)
+    document.close()
+
+    result = convert(pdf, ConversionOptions(mode="text"))
+
+    assert result.source == ""
+    assert result.document.blocks == ()
+
+
+def test_auto_routes_an_image_only_pdf_to_vision(tmp_path: Path) -> None:
+    pdf = tmp_path / "scan.pdf"
+    document = pymupdf.open()
+    page = document.new_page(width=200, height=100)
+    pixmap = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 200, 100), False)
+    pixmap.clear_with(0xFFFFFF)
+    page.insert_image(page.rect, pixmap=pixmap)
+    document.save(pdf)
+    document.close()
+
+    with patch("pdf_to_carve.pipeline.transcribe_images", return_value=EMPTY) as transcribe:
+        result = convert(pdf, ConversionOptions(mode="auto", api_key="x"))
+
+    assert result.mode == "vision"
+    transcribe.assert_called_once()
+
+
 def test_unknown_pdf_backend_fails_closed(tmp_path: Path) -> None:
     pdf = tmp_path / "sample.pdf"
     _pdf(pdf)

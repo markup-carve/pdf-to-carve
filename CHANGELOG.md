@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Bound positioned hybrid text evidence by UTF-8 bytes and fail explicitly when
+  the configured budget cannot fit its truncation marker.
+- Restrict extracted image assets to the requested PDF page range.
+- Anchor internal PDF destinations on figure-only pages.
+
 ### Conversion
 
 - Keep footnote-like numbered text near a page bottom unless a matching raised

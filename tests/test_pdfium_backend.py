@@ -52,6 +52,24 @@ def test_pdfium_extracts_and_deduplicates_images(tmp_path: Path) -> None:
     assert assets[0].suffix == ".png"
 
 
+def test_pdfium_embedded_images_honor_page_range(tmp_path: Path) -> None:
+    pixmap = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 2, 2), False)
+    pixmap.clear_with(0x336699)
+    image = tmp_path / "source.png"
+    pixmap.save(image)
+    pdf = tmp_path / "pages.pdf"
+    document = pymupdf.open()
+    for _ in range(2):
+        page = document.new_page(width=100, height=100)
+        page.insert_image(pymupdf.Rect(10, 10, 30, 30), filename=image)
+    document.save(pdf)
+    document.close()
+
+    assets = extract_embedded_images(pdf, tmp_path / "assets", start=2, end=2)
+
+    assert [asset.name for asset in assets] == ["page-2-figure-1.png"]
+
+
 def test_pdfium_places_raster_figure_and_attaches_explicit_caption(tmp_path: Path) -> None:
     pixmap = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 8, 8), False)
     pixmap.clear_with(0x336699)
@@ -373,6 +391,35 @@ def test_pdfium_anchors_internal_destination_without_a_heading(tmp_path: Path) -
 
     blocks = extract_text_pdf(pdf)["blocks"]
     assert blocks[0]["content"][0]["url"] == "#page-2"
+    assert blocks[2]["id"] == "page-2"
+
+
+def test_pdfium_anchors_figure_only_internal_destination(tmp_path: Path) -> None:
+    pixmap = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 8, 8), False)
+    pixmap.clear_with(0x336699)
+    image = tmp_path / "target.png"
+    pixmap.save(image)
+    pdf = tmp_path / "internal-figure.pdf"
+    document = pymupdf.open()
+    first = document.new_page(width=400, height=300)
+    first.insert_text((20, 70), "View figure", fontsize=10)
+    second = document.new_page(width=400, height=300)
+    second.insert_image(pymupdf.Rect(20, 20, 220, 220), filename=image)
+    document[0].insert_link(
+        {
+            "kind": pymupdf.LINK_GOTO,
+            "from": pymupdf.Rect(20, 58, 90, 74),
+            "page": 1,
+            "to": pymupdf.Point(20, 20),
+        }
+    )
+    document.save(pdf)
+    document.close()
+
+    blocks = extract_text_pdf(pdf, assets_dir=tmp_path / "assets")["blocks"]
+
+    assert blocks[0]["content"][0]["url"] == "#page-2"
+    assert blocks[2]["type"] == "figure"
     assert blocks[2]["id"] == "page-2"
 
 

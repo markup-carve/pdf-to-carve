@@ -844,7 +844,11 @@ def _anchor_unheaded_target_pages(
         if block["type"] == "page_break":
             page += 1
             continue
-        if page in target_pages and page not in anchored_pages and block["type"] == "paragraph":
+        if (
+            page in target_pages
+            and page not in anchored_pages
+            and block["type"] in {"paragraph", "figure"}
+        ):
             block["id"] = f"page-{page}"
             anchored_pages.add(page)
 
@@ -1226,14 +1230,17 @@ def render_pages(
         document.close()
 
 
-def extract_embedded_images(path: Path, output_dir: Path) -> list[Path]:
+def extract_embedded_images(
+    path: Path, output_dir: Path, start: int = 1, end: int | None = None
+) -> list[Path]:
     """Extract unique raster page objects through PDFium's decoded bitmap API."""
     output_dir.mkdir(parents=True, exist_ok=True)
     document = pdfium.PdfDocument(path)
     seen: set[str] = set()
     result = []
     try:
-        for page_number, page in enumerate(document):
+        for page_number in _range(document, start, end):
+            page = document[page_number]
             figure_number = 0
             for item in page.get_objects(filter=(pdfium.raw.FPDF_PAGEOBJ_IMAGE,), max_depth=8):
                 bitmap = item.get_bitmap(render=True, scale_to_original=True)

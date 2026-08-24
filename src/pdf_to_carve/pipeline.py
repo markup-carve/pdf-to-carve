@@ -278,7 +278,7 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
         and is_pdf
         and not (selected == "text" and options.pdf_backend == "pdfium")
     ):
-        extract_images(path, options.assets_dir)
+        extract_images(path, options.assets_dir, options.start_page, options.end_page)
     document = Document.from_json(raw)
     if cache_write:
         cache_write[0].put(cache_write[1], cache_write[2])

@@ -16,7 +16,6 @@
   the configured budget cannot fit its truncation marker.
 - Restrict extracted image assets to the requested PDF page range.
 - Anchor internal PDF destinations on figure-only pages.
-
 - Improve deterministic PDFium text extraction with document-relative heading
   levels, paragraph line joining, font-run styling, super/subscript, conservative
   unordered and ordered lists, monospaced code blocks, and simple table grids.

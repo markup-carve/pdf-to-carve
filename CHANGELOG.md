@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Use released `carve-lang` 0.1.2 for development, examples and conformance
+  checks, and correct the exported package version to 0.1.2.
+
 ## 0.1.2 - 2026-08-24
 
 ### Conversion

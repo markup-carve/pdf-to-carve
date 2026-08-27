@@ -4,13 +4,17 @@ requires-python = ">=3.10"
 
 [[package]]
 name = "carve-lang"
-version = "0.1.1"
+version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/33/9e/45e7e194c0f78ee3908540c03c76d316a67271ca930fae2ef485d5bac364/carve_lang-0.1.1.tar.gz", hash = "sha256:25ade7578ab1b6e2e63325e1da74f45366e4f9f22759daf5dc6dc82f753c13d6", size = 24020, upload-time = "2026-08-18T15:28:15.233Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/99/19/58fcd42e6393bcc1916a7febca33c1c643fd91bb929166a38f9f6e654487/carve_lang-0.1.2.tar.gz", hash = "sha256:23d7bea017e4f76ead9ff25897fc0746dff3c778c11f2f53422a8c99a0430fb3", size = 34564, upload-time = "2026-08-27T09:25:37.402Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f2/dc/243339b0d651e815e656557a3e855da0cb2d65df7a94817211e9b8be1c9b/carve_lang-0.1.1-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:d4407d8b4f90a072b8fd1206c92e591850e46a520a702c0f544af1c1b3eab404", size = 1118579, upload-time = "2026-08-18T15:28:11.721Z" },
-    { url = "https://files.pythonhosted.org/packages/01/b9/4c732a669e4e3c1081e32a4c000a27e3861183ee2d25b2461ef51478fd9b/carve_lang-0.1.1-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9c51f8bb263bd4b624ee1a59a6684764f6cc07d6ca72705ffc6e30983a0ac606", size = 1287477, upload-time = "2026-08-18T15:28:13.064Z" },
-    { url = "https://files.pythonhosted.org/packages/b9/aa/3951844cf1f2e447e712105791943bfe12da87b9ddd6389bc6a6e979b988/carve_lang-0.1.1-cp38-abi3-win_amd64.whl", hash = "sha256:c09cd3525bc5ad1b7b95584ad0c12d564c82d68105a8de130d88753ed94a5c62", size = 1101808, upload-time = "2026-08-18T15:28:14.177Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/53/f079e64a717fe862fcc90ecfce5957732af90fcdf47505c6a48f206b4caa/carve_lang-0.1.2-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:231eaebb1d9339b639d65b6bbae9a256dedae69a90701c7faa2f048983cbbcbe", size = 2050224, upload-time = "2026-08-27T09:25:25.558Z" },
+    { url = "https://files.pythonhosted.org/packages/66/47/844bb68e4271b28952a64f4fba9baaabf8ff3ff898eb618742c1f6abb8a7/carve_lang-0.1.2-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:9e5d23b7b70f6026a5d18649458ee00c5f76830b78c18bdf4ec2a3017391d4a8", size = 1969904, upload-time = "2026-08-27T09:25:27.474Z" },
+    { url = "https://files.pythonhosted.org/packages/5b/a1/fd66b07f47025b8df467c29afc8b169c4869093b425d7acaafe538e0cceb/carve_lang-0.1.2-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:239265036633cc8fa330048e5a0b990f6fd6d8fe37b4362aee197e870e458be5", size = 2168162, upload-time = "2026-08-27T09:25:28.81Z" },
+    { url = "https://files.pythonhosted.org/packages/5e/43/e9853736e3baa02920e6913a5061766cb27fa25850ec63fede2d7e8ef07e/carve_lang-0.1.2-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6466dea516ccc0ec16a5d063b9d83ba4fef70966bdb708b23525cca5cc9a0d85", size = 2240235, upload-time = "2026-08-27T09:25:31.128Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/de/1ced2848222229e3b22fe6765697ab5b22f2ac4ec21802b6c19fe33bc33a/carve_lang-0.1.2-cp38-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:6e168d54b95db08e291df5e2a472a67617bd69a94f408aeb2ea8c544f40e6d78", size = 2350723, upload-time = "2026-08-27T09:25:32.5Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/ee/0f5d0631e9f951b81ed21920f58310d6a0c36a71cb8e855fbc4be7836a82/carve_lang-0.1.2-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:31358d42ff424a5ce0eb7e9bb3d603a389162a852d7363e66e3ce3dc5a2e2c75", size = 2448225, upload-time = "2026-08-27T09:25:34.791Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/38/2a39425cb2428a1596841c178edd45de0f4f1f690641f63178bb6134acc1/carve_lang-0.1.2-cp38-abi3-win_amd64.whl", hash = "sha256:0a8c8c61a4645e99c5fb30983136f6ef0cf35555642207958c1d3a26c0c20b01", size = 1989276, upload-time = "2026-08-27T09:25:36.284Z" },
 ]
 
 [[package]]
@@ -208,7 +212,7 @@ pymupdf = [
 
 [package.metadata]
 requires-dist = [
-    { name = "carve-lang", marker = "extra == 'dev'", specifier = "==0.1.1" },
+    { name = "carve-lang", marker = "extra == 'dev'", specifier = "==0.1.2" },
     { name = "pillow", specifier = ">=10,<13" },
     { name = "pymupdf", marker = "extra == 'dev'", specifier = ">=1.24,<2" },
     { name = "pymupdf", marker = "extra == 'pymupdf'", specifier = ">=1.24,<2" },

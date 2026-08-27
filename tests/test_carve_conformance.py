@@ -185,8 +185,7 @@ def test_boundary_sensitive_marks_survive_every_text_boundary(
             "content": [_text(prefix), {"type": name, "children": [_text(content)]}, _text(suffix)],
         }
     )
-    marked = content.strip() if name == "underline" and not prefix and not suffix else content
-    assert f"<{tag}>{marked}</{tag}>" in html
+    assert f"<{tag}>{content}</{tag}>" in html
 
 
 @pytest.mark.parametrize("name,tag", [("strong", "strong"), ("emphasis", "em")])

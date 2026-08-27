@@ -1,10 +1,5 @@
 # Changelog
 
-## Unreleased
-
-- Use released `carve-lang` 0.1.2 for development, examples and conformance
-  checks, and correct the exported package version to 0.1.2.
-
 ## 0.1.2 - 2026-08-24
 
 ### Conversion
@@ -59,6 +54,9 @@
 
 ### Output
 
+- Use released `carve-lang` 0.1.2 for development, examples and conformance
+  checks, correct the exported package version to 0.1.2, and emit the current
+  canonical bare mark form at unambiguous inline and table-cell boundaries.
 - Escape literal block-opening punctuation before it can become unintended
   Carve headings, lists, quotes, containers, tables, or thematic breaks.
 - Emit canonical no-space code-fence info strings and padded table header cells,

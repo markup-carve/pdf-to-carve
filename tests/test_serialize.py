@@ -11,7 +11,7 @@ def test_serializes_native_carve_without_markdown_stage() -> None:
     source = to_carve(Document.from_json(json.loads(FIXTURE.read_text())))
     assert source.startswith('---yaml\ntitle: "Example Document"')
     assert "{#results}\n# Results & discussion" in source
-    assert "The {*important*} result is $`x^2`." in source
+    assert "The *important* result is $`x^2`." in source
     assert "|= Name |= Value |" in source
     assert "`a|b`" in source
     assert "- [ ] first" in source
@@ -242,4 +242,31 @@ def test_table_escapes_pipes_inside_nested_inline_nodes() -> None:
             ],
         }
     )
-    assert to_carve(document) == "|= a\\|b |\n| {*a\\|b*} |\n"
+    assert to_carve(document) == "|= a\\|b |\n| *a\\|b* |\n"
+
+
+def test_table_marks_follow_released_canonical_boundaries() -> None:
+    rows = []
+    for mark in ("strong", "emphasis", "underline", "strike", "highlight"):
+        rows.append([[{"type": mark, "children": [{"type": "text", "text": "x"}]}]])
+        rows.append([[{"type": mark, "children": [{"type": "text", "text": " x "}]}]])
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {"type": "table", "headers": [[{"type": "text", "text": "H"}]], "rows": rows}
+            ],
+        }
+    )
+    assert to_carve(document).splitlines()[1:] == [
+        "| *x* |",
+        "| {* x *} |",
+        "| /x/ |",
+        "| {/ x /} |",
+        "| _x_ |",
+        "| {_ x _} |",
+        "| ~x~ |",
+        "| {~ x ~} |",
+        "| =x= |",
+        "| {= x =} |",
+    ]

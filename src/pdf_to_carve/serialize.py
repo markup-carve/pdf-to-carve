@@ -56,7 +56,7 @@ def _inline(
 ) -> str:
     out = []
     previous_text_ends_percent = False
-    for node in nodes:
+    for index, node in enumerate(nodes):
         if node.type == "text":
             value = _escape(node.text)
             if previous_text_ends_percent and node.text.startswith("%"):
@@ -94,6 +94,34 @@ def _inline(
             }
             opening, closing = marks[node.type]
             children = _inline(node.children, table=table, active_marks=active_marks | {node.type})
+            previous = out[-1][-1] if out and out[-1] else ""
+            following = nodes[index + 1] if index + 1 < len(nodes) else None
+            next_character = (
+                following.text[0]
+                if following is not None and following.type == "text" and following.text
+                else ""
+            )
+            safe_boundaries = table or (
+                (not previous or not previous.isalnum())
+                and (
+                    following is None
+                    or (
+                        following.type == "text"
+                        and (not next_character or not next_character.isalnum())
+                    )
+                )
+            )
+            if (
+                safe_boundaries
+                and node.type in {"strong", "emphasis", "underline", "strike", "highlight"}
+                and children
+                and not children[0].isspace()
+                and not children[-1].isspace()
+            ):
+                # Safe surrounding boundaries make braces unnecessary. Match
+                # the released canonical writer while edge-whitespace content
+                # and word-adjacent marks retain the forced spelling.
+                opening, closing = opening[1:], closing[:-1]
             # Carve intentionally does not nest the same mark type. Nested
             # identical HTML elements are semantically redundant, so flatten
             # that model shape instead of emitting punctuation as text.
@@ -157,17 +185,6 @@ def _block(block: Block) -> str:
         return f"{{#{d['id']}}}\n{heading}" if "id" in d else heading
     if block.type == "paragraph":
         paragraph = _escape_block_start(_inline(d["content"]))
-        # A line containing only `{_..._}` is currently consumed as a block
-        # attribute line by released Carve engines. The bare form is unambiguous
-        # at both paragraph boundaries; keep this compatibility fallback until
-        # the forced form wins that parser conflict upstream.
-        match = re.fullmatch(r"\{_(.*)_\}", paragraph)
-        if match:
-            content = match.group(1)
-            leading = content[: len(content) - len(content.lstrip())]
-            trailing = content[len(content.rstrip()) :]
-            core = content.strip()
-            paragraph = f"{leading}_{core}_{trailing}" if core else content
         return f"{{#{d['id']}}}\n{paragraph}" if "id" in d else paragraph
     if block.type == "list":
         lines = []

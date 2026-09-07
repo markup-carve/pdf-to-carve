@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+## 0.1.3 - 2026-09-07
+
+- Publish a hash-pinned, stratified seven-document gold set with reproducible
+  exact-document accuracy, character/word error rates, and edit counts.
+- Add opt-in per-block confidence comments and a local interactive correction
+  loop whose replacements must pass the extraction-model validator.
+- Keep provider confidence unchanged through correction and document a
+  pre-upload cloud-vision redaction workflow.
+
 ## 0.1.2 - 2026-08-24
 
 ### Conversion

@@ -17,7 +17,7 @@ from .extract import text_coverage as pymupdf_text_coverage
 from .layout import _pymupdf, evidence_prompt
 from .layout import extract_embedded_images as pymupdf_extract_images
 from .layout import positioned_text as pymupdf_positioned_text
-from .model import Document
+from .model import HUMAN_CORRECTED_WARNING, Document
 from .pdfium_backend import extract_embedded_images as pdfium_extract_images
 from .pdfium_backend import extract_text_pdf as pdfium_extract_text
 from .pdfium_backend import positioned_text as pdfium_positioned_text
@@ -52,6 +52,7 @@ class ConversionOptions:
     max_input_mb: int = 100
     provider: Literal["openai", "codex-cli", "claude-cli"] = "openai"
     pdf_backend: Literal["pdfium", "pymupdf"] = "pdfium"
+    confidence_annotations: bool = False
 
 
 @dataclass(frozen=True)
@@ -99,6 +100,7 @@ def _document_warnings(document: Document) -> tuple[str, ...]:
         f"block {entry.block}: {warning}"
         for entry in document.provenance
         for warning in entry.warnings
+        if warning != HUMAN_CORRECTED_WARNING
     )
     return tuple(warnings)
 
@@ -282,13 +284,27 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
     document = Document.from_json(raw)
     if cache_write:
         cache_write[0].put(cache_write[1], cache_write[2])
-    source = to_carve(document)
+    source = to_carve(document, confidence_annotations=options.confidence_annotations)
     diagnostics = _official_check(source, options.carve_command) if options.carve_command else ()
     return ConversionResult(source, document, selected, diagnostics, _document_warnings(document))
 
 
-def convert_json(path: Path, carve_command: str | None = None) -> ConversionResult:
+def convert_json(
+    path: Path, carve_command: str | None = None, *, confidence_annotations: bool = False
+) -> ConversionResult:
     document = Document.from_json(json.loads(path.read_text(encoding="utf-8")))
-    source = to_carve(document)
+    return convert_document(
+        document, carve_command=carve_command, confidence_annotations=confidence_annotations
+    )
+
+
+def convert_document(
+    document: Document,
+    *,
+    carve_command: str | None = None,
+    confidence_annotations: bool = False,
+) -> ConversionResult:
+    """Serialize an already validated document, optionally running official checks."""
+    source = to_carve(document, confidence_annotations=confidence_annotations)
     diagnostics = _official_check(source, carve_command) if carve_command else ()
     return ConversionResult(source, document, "json", diagnostics, _document_warnings(document))

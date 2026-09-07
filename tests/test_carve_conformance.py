@@ -294,3 +294,18 @@ def test_a_shipped_document_holds_no_detached_attribute(path: Path) -> None:
     html = carve.to_html(path.read_text(encoding="utf-8"))
     assert '<span class="tag">' not in html
     assert "{#" not in html
+
+
+def test_confidence_comments_preserve_rendered_document() -> None:
+    raw = {
+        "version": 1,
+        "blocks": [
+            {"type": "heading", "level": 1, "content": [_text("Result")]},
+            {"type": "paragraph", "content": [_text("Body")]},
+        ],
+        "provenance": [{"block": 1, "page": 2, "confidence": 0.7}],
+    }
+    document = Document.from_json(raw)
+    assert carve.to_html(to_carve(document, confidence_annotations=True)) == carve.to_html(
+        to_carve(document)
+    )

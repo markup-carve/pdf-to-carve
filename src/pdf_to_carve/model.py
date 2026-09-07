@@ -41,6 +41,7 @@ BLOCK_TYPES = {
     "thematic_break",
     "page_break",
 }
+HUMAN_CORRECTED_WARNING = "human-corrected; confidence applies to original extraction"
 
 
 def _object(value: Any, path: str) -> dict[str, Any]:

@@ -6,13 +6,18 @@ import html
 import json
 from pathlib import Path
 
-from .model import Document, document_to_json
+from .model import HUMAN_CORRECTED_WARNING, Document, document_to_json
 
 
 def write_review(path: Path, *, source: str, document: Document, input_name: str) -> None:
     """Write escaped source, extraction JSON, and provenance for human review."""
     payload = json.dumps(document_to_json(document), ensure_ascii=False, indent=2)
-    warnings = sum(len(item.warnings) for item in document.provenance)
+    warnings = sum(
+        warning != HUMAN_CORRECTED_WARNING
+        for item in document.provenance
+        for warning in item.warnings
+    )
+    corrected = sum(HUMAN_CORRECTED_WARNING in item.warnings for item in document.provenance)
     body = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>Carve conversion review</title>
@@ -24,7 +29,8 @@ pre{{white-space:pre-wrap;overflow-wrap:anywhere;background:#f5f5f5;padding:1rem
 <h1>Conversion review</h1>
 <p>Input: <code>{html.escape(input_name)}</code></p>
 <div class="summary"><span>Blocks: {len(document.blocks)}</span>
-<span>Located blocks: {len(document.provenance)}</span><span>Warnings: {warnings}</span></div>
+<span>Located blocks: {len(document.provenance)}</span><span>Warnings: {warnings}</span>
+<span>Corrected blocks: {corrected}</span></div>
 <details open><summary>Carve source</summary><pre>{html.escape(source)}</pre></details>
 <details><summary>Validated extraction JSON</summary><pre>{html.escape(payload)}</pre></details>
 </body></html>

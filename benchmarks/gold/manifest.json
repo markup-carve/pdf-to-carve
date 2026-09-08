@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "mode": "text",
+  "generator": "tests/pdf_corpus/generate.py",
+  "cases": [
+    {"name": "assets", "class": "visual-assets", "features": ["raster", "vector", "captions"], "pdf_sha256": "805c5568f17dbe11b81b5ab7dd4423f029a3245cba1690c151c28367f2f01e9a", "gold_sha256": "7a3e90197686378e9bf8bf4f5745516b6bc5383f7055ea8f344a765cbc3cac83"},
+    {"name": "columns", "class": "multi-column", "features": ["two-column", "reading-order"], "pdf_sha256": "53c77875e74f182669b9ff1fa7aab1839f7e2d06a4fa5e04449becc02cdbb404", "gold_sha256": "5d59dab09cf722ac2e6c251495917439270f91799edd3407b45dad83aedc284c"},
+    {"name": "furniture", "class": "repeated-furniture", "features": ["headers", "footers", "page-numbers"], "pdf_sha256": "82b3c4c1e508900860f65bc2dcdef33c38a9c16a3b5a71c3a77ebcfacd8940a7", "gold_sha256": "a12e998976f09683c78e98cbe295f04005eb2e08656b8e05fb42fcb6f9242354"},
+    {"name": "links-footnotes", "class": "references", "features": ["internal-links", "multiline-footnotes"], "pdf_sha256": "9ce55c2d9dabf685542f2b0fe82f5b5e6dae591c93a8114e88fcd8aa67e678d9", "gold_sha256": "5924bfc7743d76fece6fccc14cf845cfc07731a994fc4820b0237678d734d98f"},
+    {"name": "rotated-code-table", "class": "mixed-layout", "features": ["rotated-text", "code", "table-alignment"], "pdf_sha256": "4126110b5526b961dee8bd702347cfab4c9af65d2563a64b694a4efddb34d794", "gold_sha256": "2e13a7e4c927be28394298c0d6a34ee4b0302d299aa54b87be7edfc758aa984f"},
+    {"name": "spanning-table", "class": "complex-tables", "features": ["rowspan", "colspan"], "pdf_sha256": "026aab42754d0e490f3c4c79d4021bf4a5d4b7cdb6997f13f54a9e9f53b2cbaa", "gold_sha256": "aea9ec90de7bb6692e1b9f07fa0ba248c1468dfc3c42ed0ad7c69e779855618a"},
+    {"name": "three-columns", "class": "multi-column", "features": ["three-column", "reading-order"], "pdf_sha256": "cae3af20a767a5881887783b66b60414ef12b30fbc36ad93851afe9976d2260d", "gold_sha256": "04134085ca53ca5c0939878a0d1ba354bbfed4d307860447a8893249252e40a2"}
+  ]
+}

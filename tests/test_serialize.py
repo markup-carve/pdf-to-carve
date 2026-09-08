@@ -270,3 +270,63 @@ def test_table_marks_follow_released_canonical_boundaries() -> None:
         "| =x= |",
         "| {= x =} |",
     ]
+
+
+def test_opt_in_confidence_annotations_are_stable_carve_comments() -> None:
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [{"type": "paragraph", "content": [{"type": "text", "text": "Check me."}]}],
+            "provenance": [
+                {
+                    "block": 0,
+                    "page": 2,
+                    "confidence": 0.625,
+                    "warnings": ["reading order"],
+                }
+            ],
+        }
+    )
+    assert to_carve(document) == "Check me.\n"
+    assert to_carve(document, confidence_annotations=True) == (
+        "Check me.\n\n%% pdf-to-carve block=0 page=2 confidence=0.625 warnings=1\n"
+    )
+
+
+def test_confidence_annotation_names_a_missing_score() -> None:
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [{"type": "thematic_break"}],
+            "provenance": [{"block": 0, "page": 1}],
+        }
+    )
+    assert to_carve(document, confidence_annotations=True) == (
+        "%% pdf-to-carve block boundary\n\n---\n\n"
+        "%% pdf-to-carve block=0 page=1 confidence=unknown\n"
+    )
+
+
+def test_confidence_annotation_covers_a_block_without_provenance() -> None:
+    document = Document.from_json({"version": 1, "blocks": [{"type": "thematic_break"}]})
+    assert to_carve(document, confidence_annotations=True) == (
+        "%% pdf-to-carve block boundary\n\n---\n\n"
+        "%% pdf-to-carve block=0 page=unknown confidence=unknown\n"
+    )
+
+
+def test_adjacent_lists_and_leading_thematic_breaks_keep_block_boundaries() -> None:
+    text = [{"type": "text", "text": "item"}]
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {"type": "thematic_break"},
+                {"type": "thematic_break"},
+                {"type": "list", "items": [{"content": text}]},
+                {"type": "list", "items": [{"content": text}]},
+            ],
+        }
+    )
+    source = to_carve(document)
+    assert source.count("%% pdf-to-carve block boundary") == 3

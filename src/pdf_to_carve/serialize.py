@@ -6,7 +6,7 @@ import re
 from typing import Any
 from urllib.parse import quote
 
-from .model import Block, Document, Inline
+from .model import HUMAN_CORRECTED_WARNING, Block, Document, Inline
 
 _SPECIAL = re.compile(r"([\\/*_~=\[\]{}<>`])")
 _BLOCK_START = re.compile(r"^(?:#{1,6} |[-+>:] |\||:::)")
@@ -243,11 +243,53 @@ def _block(block: Block) -> str:
     raise AssertionError(f"unhandled block type: {block.type}")
 
 
-def to_carve(document: Document) -> str:
+def to_carve(document: Document, *, confidence_annotations: bool = False) -> str:
     """Serialize a validated document to stable Carve source."""
     sections = []
     frontmatter = _frontmatter(document)
     if frontmatter:
         sections.append(frontmatter)
-    sections.extend(rendered for block in document.blocks if (rendered := _block(block)))
+    provenance = {entry.block: entry for entry in document.provenance}
+    previous_block = None
+    annotations = []
+    for index, block in enumerate(document.blocks):
+        rendered = _block(block)
+        if not rendered:
+            continue
+        ambiguous_boundary = (
+            block.type == "thematic_break"
+            and (not sections or (previous_block and previous_block.type == "thematic_break"))
+        ) or (
+            block.type == "list"
+            and previous_block is not None
+            and previous_block.type == "list"
+            and previous_block.data["ordered"] == block.data["ordered"]
+        )
+        if ambiguous_boundary:
+            sections.append("%% pdf-to-carve block boundary")
+        if confidence_annotations:
+            entry = provenance.get(index)
+            page = "unknown" if entry is None else str(entry.page)
+            confidence = (
+                "unknown"
+                if entry is None or entry.confidence is None
+                else f"{entry.confidence:.3f}"
+            )
+            corrected = entry is not None and HUMAN_CORRECTED_WARNING in entry.warnings
+            score_name = "original-confidence" if corrected else "confidence"
+            warnings = (
+                []
+                if entry is None
+                else [warning for warning in entry.warnings if warning != HUMAN_CORRECTED_WARNING]
+            )
+            warning_count = f" warnings={len(warnings)}" if warnings else ""
+            correction = " corrected" if corrected else ""
+            annotations.append(
+                f"%% pdf-to-carve block={index} page={page} "
+                f"{score_name}={confidence}{warning_count}{correction}"
+            )
+        sections.append(rendered)
+        previous_block = block
+    if annotations:
+        sections.append("\n".join(annotations))
     return "\n\n".join(sections).rstrip() + "\n" if sections else ""

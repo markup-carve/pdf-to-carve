@@ -1,0 +1,296 @@
+{
+  "by_class": {
+    "complex-tables": {
+      "character_error_rate": 0.0,
+      "character_errors": {
+        "deletions": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "document_accuracy": 1.0,
+      "documents": 1,
+      "exact_documents": 1,
+      "word_error_rate": 0.0,
+      "word_errors": {
+        "deletions": 0,
+        "insertions": 0,
+        "substitutions": 0
+      }
+    },
+    "mixed-layout": {
+      "character_error_rate": 0.0,
+      "character_errors": {
+        "deletions": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "document_accuracy": 1.0,
+      "documents": 1,
+      "exact_documents": 1,
+      "word_error_rate": 0.0,
+      "word_errors": {
+        "deletions": 0,
+        "insertions": 0,
+        "substitutions": 0
+      }
+    },
+    "multi-column": {
+      "character_error_rate": 0.0,
+      "character_errors": {
+        "deletions": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "document_accuracy": 1.0,
+      "documents": 2,
+      "exact_documents": 2,
+      "word_error_rate": 0.0,
+      "word_errors": {
+        "deletions": 0,
+        "insertions": 0,
+        "substitutions": 0
+      }
+    },
+    "references": {
+      "character_error_rate": 0.0,
+      "character_errors": {
+        "deletions": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "document_accuracy": 1.0,
+      "documents": 1,
+      "exact_documents": 1,
+      "word_error_rate": 0.0,
+      "word_errors": {
+        "deletions": 0,
+        "insertions": 0,
+        "substitutions": 0
+      }
+    },
+    "repeated-furniture": {
+      "character_error_rate": 0.0,
+      "character_errors": {
+        "deletions": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "document_accuracy": 1.0,
+      "documents": 1,
+      "exact_documents": 1,
+      "word_error_rate": 0.0,
+      "word_errors": {
+        "deletions": 0,
+        "insertions": 0,
+        "substitutions": 0
+      }
+    },
+    "visual-assets": {
+      "character_error_rate": 0.0,
+      "character_errors": {
+        "deletions": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "document_accuracy": 1.0,
+      "documents": 1,
+      "exact_documents": 1,
+      "word_error_rate": 0.0,
+      "word_errors": {
+        "deletions": 0,
+        "insertions": 0,
+        "substitutions": 0
+      }
+    }
+  },
+  "cases": [
+    {
+      "character_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "characters": 211,
+      "class": "visual-assets",
+      "exact": true,
+      "features": [
+        "raster",
+        "vector",
+        "captions"
+      ],
+      "name": "assets",
+      "word_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "words": 24
+    },
+    {
+      "character_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "characters": 242,
+      "class": "multi-column",
+      "exact": true,
+      "features": [
+        "two-column",
+        "reading-order"
+      ],
+      "name": "columns",
+      "word_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "words": 42
+    },
+    {
+      "character_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "characters": 125,
+      "class": "repeated-furniture",
+      "exact": true,
+      "features": [
+        "headers",
+        "footers",
+        "page-numbers"
+      ],
+      "name": "furniture",
+      "word_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "words": 15
+    },
+    {
+      "character_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "characters": 167,
+      "class": "references",
+      "exact": true,
+      "features": [
+        "internal-links",
+        "multiline-footnotes"
+      ],
+      "name": "links-footnotes",
+      "word_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "words": 23
+    },
+    {
+      "character_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "characters": 174,
+      "class": "mixed-layout",
+      "exact": true,
+      "features": [
+        "rotated-text",
+        "code",
+        "table-alignment"
+      ],
+      "name": "rotated-code-table",
+      "word_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "words": 32
+    },
+    {
+      "character_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "characters": 50,
+      "class": "complex-tables",
+      "exact": true,
+      "features": [
+        "rowspan",
+        "colspan"
+      ],
+      "name": "spanning-table",
+      "word_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "words": 21
+    },
+    {
+      "character_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "characters": 207,
+      "class": "multi-column",
+      "exact": true,
+      "features": [
+        "three-column",
+        "reading-order"
+      ],
+      "name": "three-columns",
+      "word_errors": {
+        "deletions": 0,
+        "distance": 0,
+        "insertions": 0,
+        "substitutions": 0
+      },
+      "words": 31
+    }
+  ],
+  "metrics": {
+    "character_error_rate": "Levenshtein character edits / gold characters",
+    "document_accuracy": "exact generated Carve / documents",
+    "word_error_rate": "Levenshtein token edits / gold whitespace tokens"
+  },
+  "mode": "text",
+  "overall": {
+    "character_error_rate": 0.0,
+    "character_errors": {
+      "deletions": 0,
+      "insertions": 0,
+      "substitutions": 0
+    },
+    "document_accuracy": 1.0,
+    "documents": 7,
+    "exact_documents": 7,
+    "word_error_rate": 0.0,
+    "word_errors": {
+      "deletions": 0,
+      "insertions": 0,
+      "substitutions": 0
+    }
+  },
+  "schema": 1
+}

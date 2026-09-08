@@ -17,6 +17,9 @@ For the broader extractor comparison, see the
 raw normalized outputs, pinned versions, completion failures, scoring code, and
 methodological limitations.
 
+The [stratified deterministic gold set](benchmarks/gold/REPORT.md) publishes
+exact-document accuracy plus character and word error rates by document class.
+
 ## Carve compatibility
 
 Generated `.crv` files target the **Carve 0.1 specification**. Carve engine and
@@ -103,6 +106,20 @@ pdf-to-carve scan.pdf --mode vision --save-json scan.crv.json -o scan.crv
 pdf-to-carve scan.crv.json --from-json -o rebuilt.crv
 ```
 
+Surface confidence beside each generated block and run the local validated
+correction loop over uncertain or warned blocks:
+
+```bash
+pdf-to-carve scan.crv.json --from-json --correct \
+  --save-json corrected.json --annotate-confidence -o corrected.crv
+```
+
+The annotations are Carve comments and contain block number, page, confidence,
+and warning count - never evidence text. Blocks without provenance are marked
+with unknown page and confidence. The correction loop
+accepts only extraction-model JSON that passes the same strict validation as a
+provider response. See the [review workflow](docs/review-workflow.md).
+
 Generate a self-contained local review report and extract embedded raster assets:
 
 ```bash
@@ -180,7 +197,8 @@ escaping. The contract can evolve by adding a new version.
 - Very large PDFs may exceed a provider's request limits. Select a page range.
 - PDF content is untrusted input. Review converted documents before publishing.
 
-See [privacy and security](docs/privacy-security.md) before processing sensitive files.
+See [privacy and security](docs/privacy-security.md), including the cloud-vision
+redaction checklist, before processing sensitive files.
 For distribution planning, see the
 [PDF backend licensing options](docs/dependency-licensing.md).
 
@@ -198,5 +216,7 @@ pdf-to-carve document.pdf --pdf-backend pymupdf
 uv run ruff check .
 uv run ruff format --check .
 uv run pytest --cov=pdf_to_carve --cov-report=term-missing
+uv run python benchmarks/gold/score.py --output benchmarks/gold/results.json \
+  --report benchmarks/gold/REPORT.md
 uv build
 ```

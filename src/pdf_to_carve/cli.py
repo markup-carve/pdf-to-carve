@@ -7,9 +7,17 @@ import json
 import sys
 from pathlib import Path
 
+from .correct import correct_interactively
 from .model import document_to_json
-from .pipeline import ConversionOptions, convert, convert_json
+from .pipeline import ConversionOptions, convert, convert_document, convert_json
 from .review import write_review
+
+
+def _unit_interval(value: str) -> float:
+    result = float(value)
+    if not 0 <= result <= 1:
+        raise argparse.ArgumentTypeError("must be between 0 and 1")
+    return result
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -46,6 +54,22 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--assets-dir", type=Path, help="extract embedded raster assets")
     parser.add_argument("--max-input-mb", type=int, default=100, help="input-size safety limit")
     parser.add_argument("--review-html", type=Path, help="write an escaped local review report")
+    parser.add_argument(
+        "--annotate-confidence",
+        action="store_true",
+        help="emit provenance confidence as Carve comments",
+    )
+    parser.add_argument(
+        "--correct",
+        action="store_true",
+        help="interactively correct uncertain blocks from --from-json input",
+    )
+    parser.add_argument(
+        "--confidence-threshold",
+        type=_unit_interval,
+        default=0.85,
+        help="queue confidence below this value for --correct (default: 0.85)",
+    )
     return parser
 
 
@@ -53,8 +77,26 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         if args.from_json:
-            result = convert_json(args.input, args.carve_command)
+            result = convert_json(
+                args.input,
+                None if args.correct else args.carve_command,
+                confidence_annotations=args.annotate_confidence,
+            )
+            if args.correct:
+                document = correct_interactively(
+                    result.document,
+                    input_stream=sys.stdin,
+                    output_stream=sys.stderr,
+                    threshold=args.confidence_threshold,
+                )
+                result = convert_document(
+                    document,
+                    carve_command=args.carve_command,
+                    confidence_annotations=args.annotate_confidence,
+                )
         else:
+            if args.correct:
+                raise ValueError("--correct requires --from-json")
             result = convert(
                 args.input,
                 ConversionOptions(
@@ -75,6 +117,7 @@ def main(argv: list[str] | None = None) -> int:
                     max_input_mb=args.max_input_mb,
                     provider=args.provider,
                     pdf_backend=args.pdf_backend,
+                    confidence_annotations=args.annotate_confidence,
                 ),
             )
         if args.save_json:

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; frame-src file:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>pdf-to-carve correction workspace</title>
+  <style>
+    :root { color-scheme: light dark; font: 16px/1.45 system-ui, sans-serif; }
+    body { margin: 0; }
+    header {
+      padding: .8rem 1rem;
+      border-bottom: 1px solid #888;
+      display: flex;
+      gap: .6rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    button { font: inherit; padding: .35rem .7rem; }
+    .status { margin-inline-start: auto; }
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(18rem, 1fr) minmax(22rem, 1fr);
+      height: calc(100vh - 4.2rem);
+    }
+    .source, .editor { min-width: 0; padding: 1rem; overflow: auto; }
+    .source { border-inline-end: 1px solid #888; }
+    iframe { width: 100%; height: calc(100% - 3rem); border: 1px solid #888; background: white; }
+    textarea {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 20rem;
+      font: 14px/1.45 ui-monospace, monospace;
+      tab-size: 2;
+    }
+    .meta { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .warnings { color: #7a2e00; }
+    .error { color: #b00020; font-weight: 600; }
+    @media (prefers-color-scheme: dark) {
+      .warnings { color: #ffb38a; }
+      .error { color: #ff8a9b; }
+    }
+    @media (max-width: 50rem) {
+      .workspace { grid-template-columns: 1fr; height: auto; }
+      .source { border-inline-end: 0; border-bottom: 1px solid #888; }
+      iframe { height: 45vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <button id="prev" type="button">Previous</button>
+    <button id="next" type="button">Next</button>
+    <button id="accept" type="button">Accept block</button>
+    <button id="undo" type="button">Undo</button>
+    <button id="export-json" type="button">Export corrected JSON</button>
+    <button id="export-fixture" type="button">Export regression fixture</button>
+    <button id="clear" type="button">Clear saved session</button>
+    <span class="status" id="status" role="status"></span>
+  </header>
+  <main class="workspace">
+    <section class="source">
+      <h1>Source page</h1>
+      <p id="source-help"></p>
+      <iframe id="pdf" title="Source PDF page"></iframe>
+    </section>
+    <section class="editor">
+      <h1 id="heading">Block</h1>
+      <div class="meta" id="meta"></div>
+      <p class="warnings" id="warnings"></p>
+      <label for="block-json">Block JSON</label>
+      <textarea id="block-json" spellcheck="false"></textarea>
+      <p class="error" id="error" role="alert"></p>
+      <p>
+        Accepting checks JSON shape in the browser. Replay exported JSON with
+        <code>--from-json</code> for complete model validation.
+      </p>
+    </section>
+  </main>
+  <script id="config" type="application/json">__PDF_TO_CARVE_CONFIG__</script>
+  <script>
+    (() => {
+      'use strict';
+      const config = JSON.parse(document.getElementById('config').textContent);
+      const key = `pdf-to-carve:${config.documentSha256}`;
+      const original = structuredClone(config.document);
+      let state = structuredClone(original);
+      let index = 0;
+      let undo = [];
+      let dirty = false;
+      const $ = id => document.getElementById(id);
+      const canonical = value => {
+        if (Array.isArray(value)) return value.map(canonical);
+        if (value && typeof value === 'object') {
+          return Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])]));
+        }
+        return value;
+      };
+      try {
+        const saved = JSON.parse(localStorage.getItem(key));
+        if (saved?.document?.version === 1 &&
+            saved.document.blocks?.length === original.blocks.length) {
+          state = saved.document;
+          index = saved.index || 0;
+          undo = Array.isArray(saved.undo) ? saved.undo : [];
+        }
+      } catch (_) {}
+      const provenance = (documentState, block) =>
+        documentState.provenance?.find(item => item.block === block);
+      const persist = message => {
+        try {
+          localStorage.setItem(key, JSON.stringify({document: state, index, undo}));
+          $('status').textContent = message;
+        } catch (_) {
+          $('status').textContent = 'Browser storage unavailable; export JSON to save';
+        }
+      };
+      const render = () => {
+        index = Math.max(0, Math.min(index, state.blocks.length - 1));
+        const p = provenance(state, index);
+        $('heading').textContent = `Block ${index + 1} of ${state.blocks.length}`;
+        $('meta').textContent =
+          `Type: ${state.blocks[index].type} · Page: ${p?.page ?? 'unknown'} · ` +
+          `Confidence: ${p?.confidence ?? 'unknown'}`;
+        $('warnings').textContent = p?.warnings?.length
+          ? `Warnings: ${p.warnings.join('; ')}` : '';
+        $('block-json').value = JSON.stringify(state.blocks[index], null, 2);
+        $('error').textContent = '';
+        $('prev').disabled = index === 0;
+        $('next').disabled = index === state.blocks.length - 1;
+        $('undo').disabled = !undo.length;
+        if (config.pdfUrl) {
+          $('pdf').hidden = false;
+          $('pdf').src = `${config.pdfUrl}#page=${p?.page ?? 1}`;
+          $('source-help').textContent = config.inputName;
+        } else {
+          $('pdf').hidden = true;
+          $('source-help').textContent =
+            'No source PDF supplied. Use --source-pdf with --from-json.';
+        }
+        dirty = false;
+        persist('Session autosaved');
+      };
+      const accept = () => {
+        try {
+          const replacement = JSON.parse($('block-json').value);
+          if (!replacement || typeof replacement !== 'object' ||
+              Array.isArray(replacement) || typeof replacement.type !== 'string') {
+            throw new Error('block must be an object with a string type');
+          }
+          const candidate = structuredClone(state);
+          candidate.blocks[index] = replacement;
+          const p = provenance(candidate, index);
+          let marked = false;
+          if (p) {
+            const warnings = p.warnings ?? [];
+            if (!warnings.includes(config.correctedWarning)) {
+              p.warnings = [...warnings, config.correctedWarning];
+            }
+            marked = true;
+          }
+          undo.push(structuredClone(state));
+          if (undo.length > 20) undo.shift();
+          state = candidate;
+          render();
+          $('status').textContent = marked
+            ? 'Block accepted and autosaved'
+            : 'Block accepted; no provenance entry exists, so export the fixture for audit';
+          return true;
+        } catch (error) {
+          $('error').textContent = error.message;
+          return false;
+        }
+      };
+      const navigate = delta => {
+        if (dirty && !accept()) return;
+        index += delta;
+        render();
+        $('block-json').focus();
+      };
+      const download = (name, value) => {
+        const blob = new Blob([JSON.stringify(value, null, 2) + '\n'],
+          {type: 'application/json'});
+        const anchor = document.createElement('a');
+        anchor.href = URL.createObjectURL(blob);
+        anchor.download = name;
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(anchor.href), 0);
+      };
+      $('block-json').addEventListener('input', () => { dirty = true; });
+      $('prev').onclick = () => navigate(-1);
+      $('next').onclick = () => navigate(1);
+      $('accept').onclick = accept;
+      $('undo').onclick = () => {
+        if (undo.length) {
+          state = undo.pop();
+          render();
+          $('status').textContent = 'Last accepted change undone';
+        }
+      };
+      $('clear').onclick = () => {
+        if (!confirm('Discard all accepted corrections and saved undo history?')) return;
+        try { localStorage.removeItem(key); } catch (_) {}
+        state = structuredClone(original);
+        undo = [];
+        index = 0;
+        render();
+        $('status').textContent = 'Saved session cleared';
+      };
+      $('export-json').onclick = () => download('corrected.json', state);
+      $('export-fixture').onclick = () => {
+        if (state.blocks.length !== original.blocks.length) {
+          $('error').textContent = 'saved block count does not match the original document';
+          return;
+        }
+        const corrections = state.blocks.map((block, i) =>
+          JSON.stringify(canonical(block)) === JSON.stringify(canonical(original.blocks[i]))
+            ? null : {block: i, original: original.blocks[i], corrected: block}
+        ).filter(Boolean);
+        download('correction-fixture.json', {
+          version: 1,
+          input: config.inputName,
+          document_sha256: config.documentSha256,
+          corrections,
+        });
+      };
+      render();
+    })();
+  </script>
+</body>
+</html>

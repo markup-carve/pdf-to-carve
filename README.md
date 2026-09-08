@@ -120,6 +120,17 @@ with unknown page and confidence. The correction loop
 accepts only extraction-model JSON that passes the same strict validation as a
 provider response. See the [review workflow](docs/review-workflow.md).
 
+For side-by-side PDF review with undo, autosave/resume, and corrected-fixture
+export, generate an offline workspace:
+
+```bash
+pdf-to-carve scan.crv.json --from-json --source-pdf scan.pdf \
+  --correction-html correction.html -o preview.crv
+```
+
+Exported corrected JSON is strictly validated by replaying it with `--from-json`.
+See the [browser correction workflow](docs/review-workflow.md#browser-correction-workspace).
+
 Generate a self-contained local review report and extract embedded raster assets:
 
 ```bash

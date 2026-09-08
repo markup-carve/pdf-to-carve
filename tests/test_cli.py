@@ -1,9 +1,11 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from pdf_to_carve.cli import main
+from pdf_to_carve.model import Document
 
 
 def test_from_json_writes_source_and_replayable_json(tmp_path: Path) -> None:
@@ -63,3 +65,46 @@ def test_cli_can_emit_annotations_and_run_correction_loop(tmp_path: Path, monkey
 def test_cli_rejects_confidence_threshold_outside_unit_interval() -> None:
     with pytest.raises(SystemExit, match="2"):
         main(["input.json", "--confidence-threshold", "5"])
+
+
+def test_cli_writes_correction_workspace_with_source_pdf(tmp_path: Path) -> None:
+    source = Path(__file__).parent / "fixtures" / "document.json"
+    pdf = tmp_path / "source.pdf"
+    pdf.write_bytes(b"%PDF-1.4\n")
+    workspace = tmp_path / "correction.html"
+    assert (
+        main(
+            [
+                str(source),
+                "--from-json",
+                "--correction-html",
+                str(workspace),
+                "--source-pdf",
+                str(pdf),
+            ]
+        )
+        == 0
+    )
+    assert "pdf-to-carve correction workspace" in workspace.read_text()
+
+
+def test_cli_uses_pdf_input_as_default_workspace_preview(tmp_path: Path, monkeypatch) -> None:
+    pdf = tmp_path / "source.pdf"
+    pdf.write_bytes(b"%PDF-1.4\n")
+    workspace = tmp_path / "correction.html"
+    document = Document.from_json({"version": 1, "blocks": [{"type": "paragraph", "content": []}]})
+    monkeypatch.setattr(
+        "pdf_to_carve.cli.convert",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            source="", document=document, mode="text", diagnostics=(), warnings=()
+        ),
+    )
+
+    assert main([str(pdf), "--correction-html", str(workspace)]) == 0
+    assert pdf.resolve().as_uri() in workspace.read_text()
+
+
+def test_cli_rejects_source_pdf_without_workspace(tmp_path: Path, capsys) -> None:
+    source = Path(__file__).parent / "fixtures" / "document.json"
+    assert main([str(source), "--from-json", "--source-pdf", "source.pdf"]) == 1
+    assert "--source-pdf requires --correction-html" in capsys.readouterr().err

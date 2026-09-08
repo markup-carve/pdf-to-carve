@@ -64,3 +64,30 @@ machine-readable warning in JSON and annotations use `corrected` plus
 original extraction. A human decision and a model probability are different
 facts; retain separate review records when an auditable approval trail is
 required.
+
+## Browser correction workspace
+
+Generate a local side-by-side workspace from saved extraction JSON and its PDF:
+
+```bash
+pdf-to-carve extraction.json --from-json --source-pdf input.pdf \
+  --correction-html correction.html -o preview.crv
+```
+
+Open `correction.html` locally. It follows each block's provenance page in the
+PDF preview, provides previous/next navigation and undo, and autosaves accepted
+changes in browser-local storage. Reopening the same workspace resumes that
+session; **Clear saved session** removes it.
+
+**Export corrected JSON** downloads the complete intermediate model. Replay it
+through `pdf-to-carve corrected.json --from-json` for strict validation and
+serialization. **Export regression fixture** downloads only changed block
+indices with their original and corrected values, suitable for turning an
+accepted correction into a focused test fixture.
+
+The workspace is self-contained, has a restrictive content-security policy,
+and makes no network requests. The PDF remains a local file. Browser storage
+contains extracted document content, so clear it on shared systems and apply
+the same retention policy as the source document. The generated HTML embeds the
+PDF's absolute local path, so treat the workspace as machine-local and avoid
+publishing or committing it.

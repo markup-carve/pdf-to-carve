@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.1.4 - 2026-09-09
+
+- Add an offline, side-by-side PDF/block correction workspace with page-aware
+  navigation, undo, browser-local autosave and resume, corrected JSON download,
+  and compact regression-fixture export.
+- Keep browser editing local and require exported documents to pass the existing
+  strict `--from-json` validator before serialization.
+
 ## 0.1.3 - 2026-09-07
 
 - Publish a hash-pinned, stratified seven-document gold set with reproducible

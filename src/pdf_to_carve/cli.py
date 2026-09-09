@@ -10,7 +10,7 @@ from pathlib import Path
 from .correct import correct_interactively
 from .model import document_to_json
 from .pipeline import ConversionOptions, convert, convert_document, convert_json
-from .review import write_review
+from .review import validate_source_pdf, write_correction_workspace, write_review
 
 
 def _unit_interval(value: str) -> float:
@@ -55,6 +55,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-input-mb", type=int, default=100, help="input-size safety limit")
     parser.add_argument("--review-html", type=Path, help="write an escaped local review report")
     parser.add_argument(
+        "--correction-html", type=Path, help="write an offline interactive correction workspace"
+    )
+    parser.add_argument(
+        "--source-pdf", type=Path, help="source PDF preview for --correction-html with --from-json"
+    )
+    parser.add_argument(
         "--annotate-confidence",
         action="store_true",
         help="emit provenance confidence as Carve comments",
@@ -76,6 +82,10 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.source_pdf and not args.correction_html:
+            raise ValueError("--source-pdf requires --correction-html")
+        if args.source_pdf:
+            validate_source_pdf(args.source_pdf)
         if args.from_json:
             result = convert_json(
                 args.input,
@@ -135,6 +145,16 @@ def main(argv: list[str] | None = None) -> int:
                 source=result.source,
                 document=result.document,
                 input_name=args.input.name,
+            )
+        if args.correction_html:
+            source_pdf = args.source_pdf
+            if source_pdf is None and not args.from_json and args.input.suffix.lower() == ".pdf":
+                source_pdf = args.input
+            write_correction_workspace(
+                args.correction_html,
+                document=result.document,
+                input_name=args.input.name,
+                source_pdf=source_pdf,
             )
         print(
             f"pdf-to-carve: mode={result.mode}, blocks={len(result.document.blocks)}",

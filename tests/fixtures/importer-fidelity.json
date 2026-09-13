@@ -1,0 +1,10 @@
+{
+  "id": "pdf-extraction-preserved",
+  "sourceFormat": "pdf-extraction-json",
+  "runner": "external",
+  "repository": "markup-carve/pdf-to-carve",
+  "input": "{\"version\":1,\"blocks\":[]}",
+  "expected": {
+    "diagnostics": []
+  }
+}

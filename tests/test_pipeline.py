@@ -1,8 +1,10 @@
+import json
 from pathlib import Path
 from unittest.mock import patch
 
 import pymupdf
 import pytest
+from jsonschema import validate
 
 from pdf_to_carve.model import DocumentError
 from pdf_to_carve.pipeline import (
@@ -14,6 +16,9 @@ from pdf_to_carve.pipeline import (
 )
 
 EMPTY = {"version": 1, "blocks": []}
+REPORT_SCHEMA = json.loads(
+    (Path(__file__).parent / "fixtures" / "migration-report-schema.json").read_text()
+)
 
 
 def test_conversion_result_exposes_versioned_fidelity_report() -> None:
@@ -35,18 +40,17 @@ def test_conversion_result_exposes_versioned_fidelity_report() -> None:
         ("validation-failed", "dropped", "fallback"),
     ]
     assert result.report.as_dict()["schemaVersion"] == 2
+    validate(result.report.as_dict(), REPORT_SCHEMA)
 
 
 def test_shared_extraction_fixture_replays_output_and_diagnostics() -> None:
-    import json
-
-    # Synced from markup-carve/carve@b1bcb5fa, tests/importer-fidelity/manifest.json.
     fixture = json.loads(
         (Path(__file__).parent / "fixtures" / "importer-fidelity.json").read_text()
     )
     from pdf_to_carve.model import Document
 
     result = convert_document(Document.from_json(json.loads(fixture["input"])))
+    validate(result.report.as_dict(), REPORT_SCHEMA)
     assert fixture["runner"] == "external"
     assert fixture["repository"] == "markup-carve/pdf-to-carve"
     assert result.report.schema_version == 2
@@ -67,6 +71,7 @@ def test_physical_image_import_fails_closed_without_warnings() -> None:
     assert [(item.code, item.fidelity, item.confidence) for item in result.report.diagnostics] == [
         ("fidelity-unverified", "dropped", "fallback")
     ]
+    validate(result.report.as_dict(), REPORT_SCHEMA)
 
 
 def _pdf(path: Path, pages: int = 1) -> None:

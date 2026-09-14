@@ -30,15 +30,17 @@ def test_conversion_result_exposes_versioned_fidelity_report() -> None:
     )
     assert result.report.schema_version == 2
     assert result.report.source_format == "pdf"
-    assert [item.fidelity for item in result.report.diagnostics] == ["dropped", "degraded"]
-    assert [item.confidence for item in result.report.diagnostics] == ["fallback", "exact"]
+    assert [(item.code, item.fidelity, item.confidence) for item in result.report.diagnostics] == [
+        ("fidelity-unverified", "dropped", "fallback"),
+        ("validation-failed", "dropped", "fallback"),
+    ]
     assert result.report.as_dict()["schemaVersion"] == 2
 
 
-def test_shared_empty_extraction_fixture_is_replayed() -> None:
+def test_shared_extraction_fixture_replays_output_and_diagnostics() -> None:
     import json
 
-    # Synced from markup-carve/carve@1dfbd60a, tests/importer-fidelity/manifest.json.
+    # Synced from markup-carve/carve@b1bcb5fa, tests/importer-fidelity/manifest.json.
     fixture = json.loads(
         (Path(__file__).parent / "fixtures" / "importer-fidelity.json").read_text()
     )
@@ -49,6 +51,7 @@ def test_shared_empty_extraction_fixture_is_replayed() -> None:
     assert fixture["repository"] == "markup-carve/pdf-to-carve"
     assert result.report.schema_version == 2
     assert result.report.source_format == fixture["sourceFormat"]
+    assert result.source == fixture["expected"]["output"]
     actual = [
         {"code": item.code, "fidelity": item.fidelity, "confidence": item.confidence}
         for item in result.report.diagnostics

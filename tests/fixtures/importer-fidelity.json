@@ -1,10 +1,11 @@
 {
-  "id": "pdf-extraction-preserved",
+  "id": "pdf-extraction-paragraph-preserved",
   "sourceFormat": "pdf-extraction-json",
   "runner": "external",
   "repository": "markup-carve/pdf-to-carve",
-  "input": "{\"version\":1,\"blocks\":[]}",
+  "input": "{\"version\":1,\"blocks\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Hello\"}]}]}",
   "expected": {
+    "output": "Hello\n",
     "diagnostics": []
   }
 }

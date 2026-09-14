@@ -118,7 +118,7 @@ class ConversionResult:
                 else ()
             )
             + tuple(
-                MigrationDiagnostic("validation-failed", message, "error", "degraded", "exact")
+                MigrationDiagnostic("validation-failed", message, "error", "dropped", "fallback")
                 for message in self.diagnostics
             )
             + tuple(

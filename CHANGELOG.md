@@ -6,6 +6,8 @@
   saved extraction JSON while retaining the existing diagnostics and warnings.
 - Physical PDF and image imports fail closed as dropped/fallback when complete
   extraction fidelity cannot be verified.
+- Failed validation of generated Carve is classified as dropped/fallback rather
+  than degraded because the output is not safe to accept as a document.
 
 ## 0.1.4 - 2026-09-09
 

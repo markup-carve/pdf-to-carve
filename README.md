@@ -3,6 +3,12 @@
 Convert born-digital PDFs, scanned PDFs, and document images into validated
 [Carve](https://markup-carve.github.io/carve/) (`.crv`) source.
 
+Library conversion results expose `result.report`, a schema-version-2 fidelity
+envelope. Existing `diagnostics` and `warnings` remain available for compatibility.
+Physical PDF and image inputs fail closed with a
+`fidelity-unverified`/`dropped`/`fallback` finding; validated extraction JSON
+can report cleanly when no recorded degradation exists.
+
 The conversion does **not** pass through Markdown and does not ask an AI model
 to write Carve syntax. Extraction produces a small, validated JSON document;
 a deterministic writer produces Carve.

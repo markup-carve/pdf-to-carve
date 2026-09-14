@@ -56,12 +56,92 @@ class ConversionOptions:
 
 
 @dataclass(frozen=True)
+class MigrationDiagnostic:
+    code: str
+    message: str
+    severity: Literal["info", "warning", "error"]
+    fidelity: Literal["preserved", "normalized", "degraded", "dropped"]
+    confidence: Literal["exact", "inferred", "fallback"]
+    path: str | None = None
+
+    def as_dict(self) -> dict[str, str]:
+        result = {
+            "code": self.code,
+            "message": self.message,
+            "severity": self.severity,
+            "fidelity": self.fidelity,
+            "confidence": self.confidence,
+        }
+        if self.path is not None:
+            result["path"] = self.path
+        return result
+
+
+@dataclass(frozen=True)
+class MigrationReport:
+    schema_version: int
+    source_format: str
+    diagnostics: tuple[MigrationDiagnostic, ...]
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "schemaVersion": self.schema_version,
+            "sourceFormat": self.source_format,
+            "diagnostics": [item.as_dict() for item in self.diagnostics],
+        }
+
+
+@dataclass(frozen=True)
 class ConversionResult:
     source: str
     document: Document
     mode: str
     diagnostics: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
+    source_format: Literal["pdf", "image", "pdf-extraction-json"] = "pdf"
+
+    @property
+    def report(self) -> MigrationReport:
+        findings = (
+            (
+                (
+                    MigrationDiagnostic(
+                        "fidelity-unverified",
+                        "Physical-document extraction fidelity is not fully measurable; "
+                        "dropped is a conservative worst-case release-gate classification",
+                        "warning",
+                        "dropped",
+                        "fallback",
+                    ),
+                )
+                if self.source_format in ("pdf", "image")
+                else ()
+            )
+            + tuple(
+                MigrationDiagnostic("validation-failed", message, "error", "dropped", "fallback")
+                for message in self.diagnostics
+            )
+            + tuple(
+                MigrationDiagnostic(
+                    "extraction-inferred", message, "warning", "degraded", "inferred"
+                )
+                for message in self.document.diagnostics
+            )
+        )
+        findings += tuple(
+            MigrationDiagnostic(
+                "block-extraction-inferred",
+                warning,
+                "warning",
+                "degraded",
+                "inferred",
+                f"/blocks/{entry.block}",
+            )
+            for entry in self.document.provenance
+            for warning in entry.warnings
+            if warning != HUMAN_CORRECTED_WARNING
+        )
+        return MigrationReport(2, self.source_format, findings)
 
 
 def _baseline_prompt(document: dict[str, Any], max_bytes: int = 60_000) -> str:
@@ -286,7 +366,10 @@ def convert(path: Path, options: ConversionOptions | None = None) -> ConversionR
         cache_write[0].put(cache_write[1], cache_write[2])
     source = to_carve(document, confidence_annotations=options.confidence_annotations)
     diagnostics = _official_check(source, options.carve_command) if options.carve_command else ()
-    return ConversionResult(source, document, selected, diagnostics, _document_warnings(document))
+    source_format = "pdf" if path.suffix.lower() == ".pdf" else "image"
+    return ConversionResult(
+        source, document, selected, diagnostics, _document_warnings(document), source_format
+    )
 
 
 def convert_json(
@@ -307,4 +390,11 @@ def convert_document(
     """Serialize an already validated document, optionally running official checks."""
     source = to_carve(document, confidence_annotations=confidence_annotations)
     diagnostics = _official_check(source, carve_command) if carve_command else ()
-    return ConversionResult(source, document, "json", diagnostics, _document_warnings(document))
+    return ConversionResult(
+        source,
+        document,
+        "json",
+        diagnostics,
+        _document_warnings(document),
+        "pdf-extraction-json",
+    )

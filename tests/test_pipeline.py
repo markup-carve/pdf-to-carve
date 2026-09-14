@@ -98,7 +98,7 @@ def test_conversion_result_exposes_versioned_fidelity_report() -> None:
 def test_shared_extraction_fixture_replays_output_and_diagnostics() -> None:
     import json
 
-    # Synced from markup-carve/carve@b1bcb5fa, tests/importer-fidelity/manifest.json.
+    # Synced from markup-carve/carve@ad065627, tests/importer-fidelity/manifest.json.
     fixture = json.loads(
         (Path(__file__).parent / "fixtures" / "importer-fidelity.json").read_text()
     )

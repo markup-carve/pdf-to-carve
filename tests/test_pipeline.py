@@ -1,8 +1,10 @@
+import json
 from pathlib import Path
 from unittest.mock import patch
 
 import pymupdf
 import pytest
+from jsonschema import validate
 
 from pdf_to_carve.model import DocumentError
 from pdf_to_carve.pipeline import (
@@ -14,6 +16,62 @@ from pdf_to_carve.pipeline import (
 )
 
 EMPTY = {"version": 1, "blocks": []}
+REPORT_SCHEMA = json.loads(
+    (Path(__file__).parent / "fixtures" / "migration-report-schema.json").read_text()
+)
+
+
+def test_conversion_result_exposes_versioned_fidelity_report() -> None:
+    from pdf_to_carve.model import Document
+    from pdf_to_carve.pipeline import ConversionResult
+
+    result = ConversionResult(
+        "text",
+        Document.from_json(EMPTY),
+        "hybrid",
+        ("parser rejected output",),
+        ("page 1 reading order inferred",),
+        "pdf",
+    )
+    assert result.report.schema_version == 2
+    assert result.report.source_format == "pdf"
+    assert [(item.code, item.fidelity, item.confidence) for item in result.report.diagnostics] == [
+        ("fidelity-unverified", "dropped", "fallback"),
+        ("validation-failed", "dropped", "fallback"),
+    ]
+    assert result.report.as_dict()["schemaVersion"] == 2
+    validate(result.report.as_dict(), REPORT_SCHEMA)
+
+
+def test_shared_extraction_fixture_replays_output_and_diagnostics() -> None:
+    fixture = json.loads(
+        (Path(__file__).parent / "fixtures" / "importer-fidelity.json").read_text()
+    )
+    from pdf_to_carve.model import Document
+
+    result = convert_document(Document.from_json(json.loads(fixture["input"])))
+    validate(result.report.as_dict(), REPORT_SCHEMA)
+    assert fixture["runner"] == "external"
+    assert fixture["repository"] == "markup-carve/pdf-to-carve"
+    assert result.report.schema_version == 2
+    assert result.report.source_format == fixture["sourceFormat"]
+    assert result.source == fixture["expected"]["output"]
+    actual = [
+        {"code": item.code, "fidelity": item.fidelity, "confidence": item.confidence}
+        for item in result.report.diagnostics
+    ]
+    assert actual == fixture["expected"]["diagnostics"]
+
+
+def test_physical_image_import_fails_closed_without_warnings() -> None:
+    from pdf_to_carve.model import Document
+    from pdf_to_carve.pipeline import ConversionResult
+
+    result = ConversionResult("", Document.from_json(EMPTY), "vision", source_format="image")
+    assert [(item.code, item.fidelity, item.confidence) for item in result.report.diagnostics] == [
+        ("fidelity-unverified", "dropped", "fallback")
+    ]
+    validate(result.report.as_dict(), REPORT_SCHEMA)
 
 
 def test_conversion_result_exposes_versioned_fidelity_report() -> None:

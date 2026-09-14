@@ -229,11 +229,4 @@ pdf-to-carve document.pdf --pdf-backend pymupdf
 
 ## Development
 
-```bash
-uv run ruff check .
-uv run ruff format --check .
-uv run pytest --cov=pdf_to_carve --cov-report=term-missing
-uv run python benchmarks/gold/score.py --output benchmarks/gold/results.json \
-  --report benchmarks/gold/REPORT.md
-uv build
-```
+Contributor setup, testing, and maintenance notes are in the [development guide](docs/development.md).

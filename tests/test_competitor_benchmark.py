@@ -25,3 +25,31 @@ def test_failed_or_missing_outputs_are_not_scored_as_zero() -> None:
     assert tools["markpdfdown"]["completed"] == 0
     assert "mean_character" not in tools["markpdfdown"]
     assert tools["docling"]["completed"] == 1
+
+
+def test_ground_truth_uses_the_current_substitution_shape() -> None:
+    # `substitution` carried the strings `oldText` and `newText` until
+    # markup-carve/carve-js#1827 replaced them with `old` and `new`, two arrays
+    # of inline nodes. Both keys are required and an empty half is `[]`.
+    truth = Path(__file__).parents[1] / "benchmarks" / "competitors" / "raw" / "truth"
+    found = 0
+    for path in sorted(truth.glob("*.ast.json")):
+        for node in _nodes(json.loads(path.read_text(encoding="utf-8"))):
+            if node.get("type") != "substitution":
+                continue
+            found += 1
+            assert isinstance(node.get("old"), list), f"{path.name}: substitution has no old array"
+            assert isinstance(node.get("new"), list), f"{path.name}: substitution has no new array"
+            retired = {"oldText", "newText"} & set(node)
+            assert not retired, f"{path.name}: retired field names {sorted(retired)}"
+    assert found == 1, f"expected one substitution in the ground truth, found {found}"
+
+
+def _nodes(value: object):
+    if isinstance(value, dict):
+        yield value
+        for child in value.values():
+            yield from _nodes(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _nodes(child)

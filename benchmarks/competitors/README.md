@@ -65,6 +65,12 @@ Markdown importer and plain-text renderer, then place both the resulting AST
 and plain text under `raw/<tool>/`. Plain-text-only extractors may omit the AST;
 their structural score is reported as unavailable rather than guessed.
 
+An AST artifact is the engine's own JSON, written compactly with a trailing
+newline and no ASCII escapes. Record the engine and its version under
+`normalization.engine` in `runs.json`: an artifact nobody can attribute to a
+version cannot be reproduced, and node positions have moved between versions
+without any content changing.
+
 The vision-backed competitors require provider credentials. One tool could not
 produce a fidelity sample because the available OpenAI account returned a
 credit-exhaustion response. Its zero-byte output, sanitized stderr, successful

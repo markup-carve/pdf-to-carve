@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.5 - 2026-09-21
+
 - Conversion results expose a version 2 importer-fidelity report for PDF and
   saved extraction JSON while retaining the existing diagnostics and warnings.
 - Physical PDF and image imports fail closed as dropped/fallback when complete

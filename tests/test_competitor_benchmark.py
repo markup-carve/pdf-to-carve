@@ -45,6 +45,18 @@ def test_ground_truth_uses_the_current_substitution_shape() -> None:
     assert found == 1, f"expected one substitution in the ground truth, found {found}"
 
 
+def test_carve_asts_record_the_source_beside_them() -> None:
+    # Catches a source rewritten without its AST, unless the byte length held.
+    raw = Path(__file__).parents[1] / "benchmarks" / "competitors" / "raw"
+    checked = 0
+    for source in sorted(raw.glob("carve-*/*.source.crv")):
+        ast = source.with_name(source.name.replace(".source.crv", ".ast.json"))
+        recorded = json.loads(ast.read_text(encoding="utf-8"))["srcByteLength"]
+        assert recorded == len(source.read_bytes()), f"{ast.relative_to(raw)} is stale"
+        checked += 1
+    assert checked == 8, f"expected eight carve-* sources, found {checked}"
+
+
 def _nodes(value: object):
     if isinstance(value, dict):
         yield value

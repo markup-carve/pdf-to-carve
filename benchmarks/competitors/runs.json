@@ -12,7 +12,7 @@
     "markdown": "official Carve Markdown importer, then Carve AST and plain-text renderer",
     "carve": "official Carve parser and plain-text renderer",
     "plain_text": "scored directly; no structural score",
-    "engine": "raw/truth/02-showcase.ast.json was regenerated with carve-js 0.1.7 (npm package markup-carve/carve). Every other artifact predates this field and the engine that produced it is not recorded."
+    "engine": "Every AST under raw/truth/ and raw/carve-*/ is carveToAstJson output from carve-js 0.1.7 (npm package markup-carve/carve) for the source beside it or the pinned fixture. The ASTs of the Markdown-producing tools predate this field and the engine that produced them is not recorded."
   },
   "tools": [
     {

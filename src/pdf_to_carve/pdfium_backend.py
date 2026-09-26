@@ -541,13 +541,16 @@ def _bordered_spanning_table(
     found_span = False
     for row_index, (row, regions) in enumerate(candidate_rows[1:], 1):
         cells = []
+        covered: set[int] = set()
         for item, region in sorted(zip(row, regions, strict=True), key=lambda pair: pair[1][0]):  # type: ignore[index]
             assert region is not None
             columns = [
                 column for column, center in enumerate(centers) if region[0] <= center <= region[2]
             ]
-            if not columns:
+            # Two cells of one row claiming a grid column means this is not a grid.
+            if not columns or covered.intersection(columns):
                 return None
+            covered.update(columns)
             colspan = len(columns)
             rowspan = sum(
                 1 for center in row_centers[row_index:] if region[1] <= center <= region[3]
@@ -561,7 +564,7 @@ def _bordered_spanning_table(
                 if colspan > 1:
                     cell["colspan"] = colspan
             cells.append((columns[0], cell))
-        body_rows.append([cell for _, cell in sorted(cells)])
+        body_rows.append([cell for _, cell in sorted(cells, key=lambda pair: pair[0])])
     if not found_span:
         return None
     return len(candidate_rows), {

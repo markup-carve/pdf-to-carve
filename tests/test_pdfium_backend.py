@@ -1,8 +1,11 @@
 from pathlib import Path
+from typing import Any
 
 import pymupdf
+import pytest
 
 from pdf_to_carve.pdfium_backend import (
+    _bordered_spanning_table,
     extract_embedded_images,
     extract_text_pdf,
     positioned_text,
@@ -232,6 +235,34 @@ def test_pdfium_recovers_bordered_row_and_column_spans(tmp_path: Path) -> None:
     assert table["type"] == "table"
     assert table["rows"][0][0]["rowspan"] == 2
     assert table["rows"][1][0]["colspan"] == 2
+
+
+def _cell_item(text: str, bbox: list[float]) -> dict[str, Any]:
+    run = {"text": text, "bbox": bbox, "size": 10, "bold": False, "italic": False}
+    return {"text": text, "bbox": bbox, "size": 10, "runs": [run]}
+
+
+@pytest.mark.parametrize(
+    "second_row",
+    [
+        # Two cells inside one two-column region: both start in column 0.
+        [([5, 25, 15, 35], [0, 20, 100, 40]), ([30, 25, 40, 35], [0, 20, 100, 40])],
+        # A cell covering columns 0-1 next to one starting in column 1.
+        [([5, 25, 15, 35], [0, 20, 100, 40]), ([60, 25, 70, 35], [50, 20, 100, 40])],
+    ],
+)
+def test_bordered_spanning_table_rejects_cells_sharing_a_column(
+    second_row: list[tuple[list[float], list[float]]],
+) -> None:
+    header = [([5, 5, 15, 15], [0, 0, 50, 20]), ([55, 5, 65, 15], [50, 0, 100, 20])]
+    last = [([5, 45, 15, 55], [0, 40, 50, 60]), ([55, 45, 65, 55], [50, 40, 100, 60])]
+    rows = []
+    paths = []
+    for index, row in enumerate((header, second_row, last)):
+        rows.append([_cell_item(f"c{index}{column}", bbox) for column, (bbox, _) in enumerate(row)])
+        paths.extend(region for _, region in row)
+
+    assert _bordered_spanning_table(rows, 0, 10, paths) is None
 
 
 def test_pdfium_text_mode_recovers_conservative_document_structure(tmp_path: Path) -> None:

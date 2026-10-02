@@ -8,10 +8,14 @@ on:
 permissions:
   contents: read
 
+# Every job declares timeout-minutes so a hung step fails in minutes
+# rather than inheriting the 360-minute GitHub default.
+
 jobs:
   build:
     name: Build distributions
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: astral-sh/setup-uv@v9.0.0
@@ -40,6 +44,7 @@ jobs:
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [build]
     permissions:
       # `write`, not `read`, and the gate below is the whole reason: a DRAFT

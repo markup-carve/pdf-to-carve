@@ -2,8 +2,11 @@
 
 ## Unreleased
 
-## 0.1.5 - 2026-09-21
+## 0.1.5 - 2026-10-02
 
+- Deterministic text-mode conversion no longer crashes when a bordered table
+  candidate puts two cells in one grid column; the candidate is rejected and
+  conversion continues.
 - Conversion results expose a version 2 importer-fidelity report for PDF and
   saved extraction JSON while retaining the existing diagnostics and warnings.
 - Physical PDF and image imports fail closed as dropped/fallback when complete

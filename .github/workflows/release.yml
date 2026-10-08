@@ -1,162 +1,112 @@
 name: Release
+
 on:
+  push:
+    tags:
+      - "v*"
+  # A release is STARTED here. The `tag` job below creates the tag after the
+  # gates and after the approval, so starting a release no longer means pushing
+  # a tag by hand. Dispatched at an existing tag with no version it re-runs that
+  # one instead, which a tag push cannot do: recreating a tag under the same
+  # name fires no push event.
   workflow_dispatch:
     inputs:
       version:
-        description: Stable version to check or publish, without v
-        required: true
+        description: 'Version to release, without a leading v (e.g. 0.1.9). Leave empty when dispatching at an existing tag.'
+        required: false
         type: string
-      publish:
-        description: Publish after checks and one approval
-        required: true
-        default: false
-        type: boolean
+
+# The tag this run releases: the one that was pushed, or the one a dispatch will
+# create. Every gate below reads this, so a dispatch and a tag push measure the
+# same version.
+env:
+  RELEASE_TAG: ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }}
+
+
 permissions:
-  contents: write
-  actions: read
-  id-token: write
-concurrency:
-  group: release-${{ github.repository }}-${{ inputs.version }}
-  cancel-in-progress: false
+  contents: read
+
+# Every job declares timeout-minutes so a hung step fails in minutes
+# rather than inheriting the 360-minute GitHub default.
+
 jobs:
-  candidate:
-    name: Check exact commit, CI and prepared notes
+  build:
+    name: Build distributions
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    outputs:
-      sha: ${{ steps.candidate.outputs.sha }}
-      tag: ${{ steps.candidate.outputs.tag }}
-      version: ${{ steps.candidate.outputs.version }}
-      release_id: ${{ steps.candidate.outputs.release_id }}
-      body: ${{ steps.candidate.outputs.body }}
-      notes_digest: ${{ steps.candidate.outputs.notes_digest }}
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v9.0.0
         with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-      - id: candidate
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ format('v{0}', inputs.version) }}
-          RELEASE_SHA: ${{ github.sha }}
-          RELEASE_PUBLISH: ${{ inputs.publish }}
-        run: python .github/scripts/release-lane.py metadata
-  preflight:
-    name: Build and validate before approval
-    needs: candidate
-    uses: ./.github/workflows/release-build.yml
-    with:
-      publish: false
-      tag: ${{ needs.candidate.outputs.tag }}
-      version: ${{ needs.candidate.outputs.version }}
-      release_tag: ${{ needs.candidate.outputs.tag }}
-      source_sha: ${{ needs.candidate.outputs.sha }}
-      release_id: ${{ needs.candidate.outputs.release_id }}
-      release_body: ${{ needs.candidate.outputs.body }}
-      notes_digest: ${{ needs.candidate.outputs.notes_digest }}
-    secrets: inherit
-  approve:
-    name: Approve once and tag the checked commit
-    if: ${{ inputs.publish }}
-    needs:
-      - candidate
-      - preflight
-    environment: release-approval
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
+          python-version: "3.12"
+
+      - name: Check the tag matches the packaged version
+        run: |
+          tag="${RELEASE_TAG#v}"
+          version="$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)"
+          if [ "$tag" != "$version" ]; then
+            echo "tag ${RELEASE_TAG} does not match project version ${version}" >&2
+            exit 1
+          fi
+
+      - run: uv build
+
+      - name: Check distribution metadata
+        run: uvx twine check --strict dist/*
+
+      - uses: actions/upload-artifact@v4
         with:
-          ref: ${{ needs.candidate.outputs.sha }}
-      - env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ needs.candidate.outputs.tag }}
-          RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
-          RELEASE_NOTES_DIGEST: ${{ needs.candidate.outputs.notes_digest }}
-        run: python .github/scripts/release-lane.py approve
-  publish:
-    name: Publish checked packages and assets
-    needs:
-      - candidate
-      - approve
-    uses: ./.github/workflows/release-build.yml
-    with:
-      publish: true
-      tag: ${{ needs.candidate.outputs.tag }}
-      version: ${{ needs.candidate.outputs.version }}
-      release_tag: ${{ needs.candidate.outputs.tag }}
-      source_sha: ${{ needs.candidate.outputs.sha }}
-      release_id: ${{ needs.candidate.outputs.release_id }}
-      release_body: ${{ needs.candidate.outputs.body }}
-      notes_digest: ${{ needs.candidate.outputs.notes_digest }}
-    secrets: inherit
-  finalize:
-    name: Verify availability and publish release notes
-    needs:
-      - candidate
-      - publish
-      - publish-pypi
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.candidate.outputs.sha }}
-      - env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ needs.candidate.outputs.tag }}
-          RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
-          RELEASE_NOTES_DIGEST: ${{ needs.candidate.outputs.notes_digest }}
-        run: python .github/scripts/release-lane.py finalize
-  report:
-    name: Report publication status even on failure
-    if: ${{ always() && inputs.publish && needs.approve.result == 'success' }}
-    needs:
-      - candidate
-      - approve
-      - publish
-      - finalize
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.candidate.outputs.sha }}
-      - env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ needs.candidate.outputs.tag }}
-          RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
-          RELEASE_NOTES_DIGEST: ${{ needs.candidate.outputs.notes_digest }}
-        run: python .github/scripts/release-lane.py report
-  publish-pypi:
-    name: Publish verified Python distributions
-    needs:
-      - candidate
-      - publish
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: write
-      actions: read
-      id-token: write
-      packages: write
-      attestations: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.candidate.outputs.sha }}
-      - name: Verify approval and checked tag
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ needs.candidate.outputs.tag }}
-          RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
-          RELEASE_NOTES_DIGEST: ${{ needs.candidate.outputs.notes_digest }}
-        run: python .github/scripts/release-lane.py permit
-      - uses: actions/download-artifact@v4
-        with:
-          name: pypi-checked-distributions-publish
+          name: dist
           path: dist/
+
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - build
+    permissions:
+      # `write`, not `read`, and the gate below is the whole reason: a DRAFT
+      # release is invisible to a caller without push access, so under
+      # `contents: read` the listing comes back empty and the gate reports
+      # "no release" for a draft that is sitting right there with notes in
+      # it. See markup-carve/carve-wasm#80.
+      contents: write
+      id-token: write
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pdf-to-carve
+    steps:
+      # GATE: the notes are not the workflow's to write. A CHANGELOG entry is
+      # deliberately one or two lines for a contributor, which makes poor
+      # release notes for a reader deciding whether to upgrade. A human writes
+      # the draft first and this refuses to publish without one.
+      #
+      # Found by listing rather than `gh release view <tag>`: a draft's tag is
+      # not a git ref, so addressing one by tag can match nothing, change
+      # nothing and still exit 0.
+      - name: A release draft for this tag exists and has notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq "[.[] | select(.tag_name == \"$RELEASE_TAG\")] | first")"
+          if [ -z "$release" ]; then
+            echo "::error::no release for $RELEASE_TAG. Write the notes first:" \
+                 "gh release create $RELEASE_TAG --draft --notes-file NOTES.md"
+            echo "::error::if a draft DOES exist, this job could not see it -" \
+                 "check that the job still declares contents: write"
+            exit 1
+          fi
+          body="$(printf '%s' "$release" | jq -r '.body // ""' | tr -d '[:space:]')"
+          [ -n "$body" ] \
+            || { echo "::error::the release for $RELEASE_TAG has no notes"; exit 1; }
+          printf '%s' "$release" | jq -r '"draft=\(.draft) tag=\(.tag_name)"'
+
+      # The secrets context is not readable from a step-level `if`, so the path
+      # is decided here instead. This step only reports whether the secret is
+      # set; the token itself reaches no other step, and in particular no
+      # third-party action.
       - name: Decide the publish path
         id: auth
         env:
@@ -168,15 +118,39 @@ jobs:
             echo "mode=oidc" >> "$GITHUB_OUTPUT"
           fi
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      # The API token is the bootstrap path only. Once the project exists on
+      # PyPI, configure a trusted publisher there and delete the secret; the
+      # step below then takes over and no credential is stored anywhere.
+      - uses: actions/checkout@v4
+
+      - name: Create the tag unless it already exists
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "$RELEASE_TAG is already on the remote; creating nothing."
+            exit 0
+          fi
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            echo "::error::this run is on tag $RELEASE_TAG, which is not on the remote."
+            exit 1
+          fi
+          # Re-checked under the approval: a tag can appear while a run waits.
+          git tag "$RELEASE_TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$RELEASE_TAG"
+          echo "tagged $RELEASE_TAG at $GITHUB_SHA"
       - name: Publish to PyPI (API token)
-        if: ${{ (steps.auth.outputs.mode == 'token') }}
+        if: steps.auth.outputs.mode == 'token'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
           password: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Publish to PyPI (Trusted Publishing)
-        if: ${{ (steps.auth.outputs.mode == 'oidc') }}
+        if: steps.auth.outputs.mode == 'oidc'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
@@ -190,6 +164,33 @@ jobs:
       #
       # Last, deliberately: a draft that stays a draft is recoverable, and one
       # published beside a failed publish is not.
-    environment:
-      name: pypi
-      url: https://pypi.org/p/pdf-to-carve
+      - name: Publish the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          id="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq "[.[] | select(.tag_name == \"$RELEASE_TAG\" and .draft)] | first | .id // empty")"
+          if [ -z "$id" ]; then
+            echo "No draft release for $RELEASE_TAG; nothing to publish."
+            exit 0
+          fi
+          # `tag_name` goes with every PATCH of a release. Omit it on a DRAFT
+          # and GitHub replaces the tag with a generated `untagged-*`
+          # placeholder, because a draft's tag is a string on the object rather
+          # than a git ref - so the field has nothing to fall back to.
+          # `-F` (not `-f`) for draft, so it is sent as a boolean.
+          gh api "repos/$GITHUB_REPOSITORY/releases/$id" -X PATCH \
+            -f tag_name="$RELEASE_TAG" -F draft=false --jq '"published \(.tag_name)"'
+          # Read it back: exit status does not tell you whether the tag survived.
+          gh api "repos/$GITHUB_REPOSITORY/releases/$id" \
+            --jq '"draft=\(.draft) tag=\(.tag_name)"'
+
+  # THE TAG IS CREATED HERE, after a human approves, so a release can be started
+  # without a tag existing - which is the whole point: creating the tag by hand
+  # was the maintainer's step.
+  # It needs every gate job, so whoever approves is looking at a green
+  # gate rather than at nothing.
+  #
+  # A tag push still works unchanged: the step finds the tag already on the
+  # remote and creates nothing. The publish runs in THIS run rather than on the
+  # new tag, because a ref created with github.token triggers no workflow.

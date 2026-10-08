@@ -85,6 +85,8 @@ jobs:
       # Found by listing rather than `gh release view <tag>`: a draft's tag is
       # not a git ref, so addressing one by tag can match nothing, change
       # nothing and still exit 0.
+      - uses: actions/checkout@v4
+
       - name: A release draft for this tag exists and has notes
         env:
           GH_TOKEN: ${{ github.token }}
@@ -126,11 +128,11 @@ jobs:
       # The API token is the bootstrap path only. Once the project exists on
       # PyPI, configure a trusted publisher there and delete the secret; the
       # step below then takes over and no credential is stored anywhere.
-      - uses: actions/checkout@v4
-
       - name: Create the tag unless it already exists
         run: |
           if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            remote="$(git ls-remote --tags origin "refs/tags/$RELEASE_TAG" "refs/tags/$RELEASE_TAG^{}" | tail -1 | cut -f1)"
+            [ "$remote" = "$GITHUB_SHA" ] || { echo "::error::Existing tag points to another commit"; exit 1; }
             echo "$RELEASE_TAG is already on the remote; creating nothing."
             exit 0
           fi

@@ -1,0 +1,186 @@
+name: Release packages and assets
+
+on:
+  workflow_call:
+    inputs:
+      publish:
+        required: true
+        type: boolean
+      tag:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      release_tag:
+        required: true
+        type: string
+      source_sha:
+        required: true
+        type: string
+      release_id:
+        required: true
+        type: string
+      release_body:
+        required: true
+        type: string
+      notes_digest:
+        required: true
+        type: string
+env:
+  RELEASE_TAG: ${{ inputs.version != '' && format('v{0}', inputs.version) || inputs.tag }}
+
+
+  LANE_TAG: ${{ inputs.tag }}
+  LANE_REF: ${{ format('refs/tags/{0}', inputs.tag) }}
+  LANE_REF_TYPE: tag
+  LANE_PUBLISH: ${{ inputs.publish }}
+permissions:
+  contents: write
+  actions: read
+  id-token: write
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+      - name: Expose the candidate tag locally
+        if: ${{ !inputs.publish }}
+        shell: bash
+        env:
+          CANDIDATE_TAG: ${{ inputs.tag }}
+        run: |
+          git tag "$CANDIDATE_TAG" "${{ inputs.source_sha }}"
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Check the tag matches the packaged version
+        run: |
+          tag="${RELEASE_TAG#v}"
+          version="$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)"
+          if [ "$tag" != "$version" ]; then
+            echo "tag ${RELEASE_TAG} does not match project version ${version}" >&2
+            exit 1
+          fi
+
+      - run: uv build
+
+      - name: Check distribution metadata
+        run: uvx twine check --strict dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ inputs.publish && 'publish' || 'check' }}
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [build, tag]
+    permissions:
+      # `write`, not `read`, and the gate below is the whole reason: a DRAFT
+      # release is invisible to a caller without push access, so under
+      # `contents: read` the listing comes back empty and the gate reports
+      # "no release" for a draft that is sitting right there with notes in
+      # it. See markup-carve/carve-wasm#80.
+      contents: write
+      id-token: write
+      actions: read
+    steps:
+      # GATE: the notes are not the workflow's to write. A CHANGELOG entry is
+      # deliberately one or two lines for a contributor, which makes poor
+      # release notes for a reader deciding whether to upgrade. A human writes
+      # the draft first and this refuses to publish without one.
+      #
+      # Found by listing rather than `gh release view <tag>`: a draft's tag is
+      # not a git ref, so addressing one by tag can match nothing, change
+      # nothing and still exit 0.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_sha }}
+      - name: Verify approval and checked tag before publishing
+        working-directory: ${{ github.workspace }}
+        if: ${{ inputs.publish }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_SHA: ${{ inputs.source_sha }}
+          RELEASE_NOTES_DIGEST: ${{ inputs.notes_digest }}
+        run: python .github/scripts/release-lane.py permit
+      - name: A release draft for this tag exists and has notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq "[.[] | select(.tag_name == \"$RELEASE_TAG\")] | first")"
+          if [ -z "$release" ]; then
+            echo "::error::no release for $RELEASE_TAG. Write the notes first:" \
+                 "gh release create $RELEASE_TAG --draft --notes-file NOTES.md"
+            echo "::error::if a draft DOES exist, this job could not see it -" \
+                 "check that the job still declares contents: write"
+            exit 1
+          fi
+          body="$(printf '%s' "$release" | jq -r '.body // ""' | tr -d '[:space:]')"
+          [ -n "$body" ] \
+            || { echo "::error::the release for $RELEASE_TAG has no notes"; exit 1; }
+          printf '%s' "$release" | jq -r '"draft=\(.draft) tag=\(.tag_name)"'
+
+      # The secrets context is not readable from a step-level `if`, so the path
+      # is decided here instead. This step only reports whether the secret is
+      # set; the token itself reaches no other step, and in particular no
+      # third-party action.
+        if: ${{ inputs.publish }}
+      - name: Decide the publish path
+        id: auth
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          if [ -n "$PYPI_API_TOKEN" ]; then
+            echo "mode=token" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=oidc" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-${{ inputs.publish && 'publish' || 'check' }}
+          path: dist/
+
+      # The API token is the bootstrap path only. Once the project exists on
+      # PyPI, configure a trusted publisher there and delete the secret; the
+      # step below then takes over and no credential is stored anywhere.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pypi-checked-distributions-${{ inputs.publish && 'publish' || 'check' }}
+          path: dist/
+          if-no-files-found: error
+  tag:
+    name: Create the tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build]
+    environment: release-approval
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+      - name: Expose the candidate tag locally
+        if: ${{ !inputs.publish }}
+        shell: bash
+        env:
+          CANDIDATE_TAG: ${{ inputs.tag }}
+        run: |
+          git tag "$CANDIDATE_TAG" "${{ inputs.source_sha }}"

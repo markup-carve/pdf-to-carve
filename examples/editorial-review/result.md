@@ -1,3 +1,8 @@
+---
+title: "Editorial Review"
+lang: "en"
+---
+
 # Editorial Review
 
 <del>The launch is scheduled for Tuesday.</del><ins>The public preview is scheduled for Thursday.</ins>

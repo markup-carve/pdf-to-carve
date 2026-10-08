@@ -1,0 +1,20 @@
+{
+  "workflow": ".github/workflows/release.yml",
+  "publisher": ".github/workflows/release-build.yml",
+  "publisher_environments": [
+    "pypi"
+  ],
+  "registries": {
+    "pypi": "pdf-to-carve"
+  },
+  "assets": [],
+  "versions": [
+    {
+      "path": "pyproject.toml",
+      "field": [
+        "project",
+        "version"
+      ]
+    }
+  ]
+}

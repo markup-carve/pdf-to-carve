@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  # Dispatch is aimed at the TAG, not a branch: every gate below reads the
+  # version from GITHUB_REF_NAME, so a run dispatched at refs/tags/X.Y.Z behaves
+  # exactly like the tag push, and the publish still waits on the release
+  # environment. Without it a version whose tag already exists has no way to run
+  # at all, because recreating a tag under the same name fires no push event.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -67,7 +73,7 @@ jobs:
       # not a git ref, so addressing one by tag can match nothing, change
       # nothing and still exit 0.
       - name: A release draft for this tag exists and has notes
-        if: github.event_name != 'workflow_dispatch'
+        if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -131,7 +137,7 @@ jobs:
       # Last, deliberately: a draft that stays a draft is recoverable, and one
       # published beside a failed publish is not.
       - name: Publish the release notes
-        if: github.event_name != 'workflow_dispatch'
+        if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

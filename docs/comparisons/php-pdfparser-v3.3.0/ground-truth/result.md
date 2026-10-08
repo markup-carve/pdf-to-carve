@@ -1,3 +1,8 @@
+---
+pageBreaks: none
+footer: ""
+---
+
 # Markdown Extraction Test
 
 This document checks whether a PDF extractor can recover ordinary Markdown structure without relying on complex Carve features.

@@ -1,3 +1,9 @@
+---
+title: "Adaptive Signals"
+author: "Example Research Group"
+lang: "en"
+---
+
 # Adaptive Signals
 
 *A compact two-column research example*

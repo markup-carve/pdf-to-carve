@@ -1,9 +1,6 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v*"
   # A release is STARTED here. The `tag` job below creates the tag after the
   # gates and after the approval, so starting a release no longer means pushing
   # a tag by hand. Dispatched at an existing tag with no version it re-runs that
@@ -16,9 +13,8 @@ on:
         required: false
         type: string
 
-# The tag this run releases: the one that was pushed, or the one a dispatch will
-# create. Every gate below reads this, so a dispatch and a tag push measure the
-# same version.
+# The tag this run releases: the one a dispatch will create, or the existing tag
+# a dispatch re-runs. Every gate below reads this.
 env:
   RELEASE_TAG: ${{ inputs.version != '' && format('v{0}', inputs.version) || github.ref_name }}
 
@@ -193,6 +189,6 @@ jobs:
   # It needs every gate job, so whoever approves is looking at a green
   # gate rather than at nothing.
   #
-  # A tag push still works unchanged: the step finds the tag already on the
-  # remote and creates nothing. The publish runs in THIS run rather than on the
-  # new tag, because a ref created with github.token triggers no workflow.
+  # Dispatched at an existing tag, the step finds it on the remote and creates
+  # nothing. The publish runs in THIS run rather than on the new tag, because a
+  # ref created with github.token triggers no workflow.

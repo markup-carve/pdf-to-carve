@@ -4,11 +4,8 @@
 
 ## 0.1.6 - 2026-10-14
 
-- Validate generated Carve and render example Markdown with the published
-  Python binding 0.1.8. The editorial example preserves the critic-delete
-  class that the new binding writes.
-- Release preparation now runs before tag creation and package publication.
-
+- Maintenance release. Conversion behavior is unchanged. The source archive
+  updates its example Markdown to match the published Carve binding 0.1.8.
 
 ## 0.1.5 - 2026-10-02
 

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.1.6 - 2026-10-14
+
+- Validate generated Carve and render example Markdown with the published
+  Python binding 0.1.8. The editorial example preserves the critic-delete
+  class that the new binding writes.
+- Release preparation now runs before tag creation and package publication.
+
+
 ## 0.1.5 - 2026-10-02
 
 - Deterministic text-mode conversion no longer crashes when a bordered table

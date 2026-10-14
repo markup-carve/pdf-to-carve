@@ -32,10 +32,9 @@ Generated `.crv` files target the **Carve 0.1 specification**. Carve engine and
 binding releases use independent patch versions, so their package versions are
 not the specification version. For example, this repository's semantic
 round-trip tests currently use the published Python binding
-`carve-lang==0.1.2`, while the Carve specification remains `0.1`.
+`carve-lang==0.1.8`, while the Carve specification remains `0.1`.
 
-The writer is also checked against current Carve development behavior and keeps
-a compatibility fallback where the published binding differs. See Carve's
+The writer is checked against the published binding. See Carve's
 [versioning policy](https://github.com/markup-carve/carve/blob/main/VERSIONING.md)
 and [version map](https://github.com/markup-carve/carve/wiki/Version-Map) for
 the relationship between specification, engine, and binding releases.

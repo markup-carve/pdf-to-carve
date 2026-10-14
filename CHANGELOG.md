@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.6 - 2026-10-14
+
+- Maintenance release. Conversion behavior is unchanged. The source archive
+  updates its example Markdown to match the published Carve binding 0.1.8.
+
 ## 0.1.5 - 2026-10-02
 
 - Deterministic text-mode conversion no longer crashes when a bordered table

@@ -50,7 +50,7 @@ jobs:
       - name: Check distribution metadata
         run: uvx twine check --strict dist/*
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -81,7 +81,7 @@ jobs:
       # Found by listing rather than `gh release view <tag>`: a draft's tag is
       # not a git ref, so addressing one by tag can match nothing, change
       # nothing and still exit 0.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: A release draft for this tag exists and has notes
         env:
@@ -116,7 +116,7 @@ jobs:
             echo "mode=oidc" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/

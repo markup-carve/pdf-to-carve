@@ -254,6 +254,32 @@ def test_a_figure_id_binds_to_the_image_and_not_to_the_text() -> None:
 
 
 @pytest.mark.parametrize(
+    "block",
+    [
+        {"type": "list", "ordered": False, "items": [{"content": [_text("+")]}]},
+        {"type": "list", "ordered": True, "start": 1, "items": [{"content": [_text("+")]}]},
+        {"type": "list", "ordered": False, "items": [{"checked": False, "content": [_text("+")]}]},
+    ],
+    ids=["bullet", "ordered", "task"],
+)
+def test_a_list_item_holding_only_a_plus_keeps_it(block: dict[str, object]) -> None:
+    """A bare `+` after the marker is a continuation marker, which left the item
+    empty (markup-carve/pdf-to-carve#39)."""
+    html = _render(block)
+    assert ">+</li>" in html or "> +</li>" in html
+    assert carve.lint(to_carve(Document.from_json({"version": 1, "blocks": [block]}))) == []
+
+
+def test_a_quote_holding_only_a_plus_escapes_it() -> None:
+    """It renders either way, but carve-lang 0.1.10 lints a bare `+` here as
+    `continuation-marker-refused`."""
+    block = {"type": "quote", "content": [_text("+")]}
+    source = to_carve(Document.from_json({"version": 1, "blocks": [block]}))
+    assert source.splitlines()[0] == "> \\+"
+    assert "<p>+</p>" in carve.to_html(source)
+
+
+@pytest.mark.parametrize(
     "url",
     [
         "https://en.wikipedia.org/wiki/Carve_(markup)",

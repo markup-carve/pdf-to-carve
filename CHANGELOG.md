@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- A list item whose whole text is `+` keeps it instead of rendering empty, and a
+  quote line holding only `+` no longer draws a `continuation-marker-refused`
+  lint warning: the writer escapes both as `\+` (#39).
+
 ## 0.1.6 - 2026-10-14
 
 - Maintenance release. Conversion behavior is unchanged. The source archive

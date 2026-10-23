@@ -51,6 +51,11 @@ def _escape_block_start(text: str) -> str:
     return _ORDERED_BLOCK_START.sub(r"\1\\\2 ", text, count=1)
 
 
+def _escape_continuation(text: str) -> str:
+    """A lone `+` in a list item or quote line is a continuation marker, not text."""
+    return "\\+" if text == "+" else text
+
+
 def _inline(
     nodes: tuple[Inline, ...], *, table: bool = False, active_marks: frozenset[str] = frozenset()
 ) -> str:
@@ -191,7 +196,7 @@ def _block(block: Block) -> str:
         for index, item in enumerate(d["items"]):
             marker = f"{d['start'] + index}." if d["ordered"] else "-"
             task = f" [{'x' if item['checked'] else ' '}]" if "checked" in item else ""
-            lines.append(f"{marker}{task} {_inline(item['content'])}")
+            lines.append(f"{marker}{task} {_escape_continuation(_inline(item['content']))}")
         return "\n".join(lines)
     if block.type == "code_block":
         text = d["text"].rstrip("\n")
@@ -201,7 +206,8 @@ def _block(block: Block) -> str:
         return f"{fence}{info}\n{text}\n{fence}"
     if block.type == "quote":
         lines = "\n".join(
-            f"> {line}" if line else ">" for line in _inline(d["content"]).splitlines()
+            f"> {_escape_continuation(line)}" if line else ">"
+            for line in _inline(d["content"]).splitlines()
         )
         if "attribution" in d:
             lines += f"\n^ {_inline(d['attribution'])}"

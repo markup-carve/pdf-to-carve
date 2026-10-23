@@ -59,7 +59,7 @@ def test_escapes_literal_block_openers_in_paragraphs() -> None:
     )
     assert to_carve(document) == (
         "\\# not a heading\n\n"
-        "\\### not a heading\n\n"
+        "\\#\\#\\# not a heading\n\n"
         "\\- not a list item\n\n"
         "\\+ not a list item\n\n"
         "\\> not a quote\n\n"
@@ -67,7 +67,7 @@ def test_escapes_literal_block_openers_in_paragraphs() -> None:
         "a\\) not an ordered item\n\n"
         "\\::: not a container\n\n"
         "\\| not a table\n\n"
-        "\\---\n"
+        "\\-\\-\\-\n"
     )
 
 

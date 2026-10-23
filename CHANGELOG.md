@@ -5,6 +5,11 @@
 - A list item whose whole text is `+` keeps it instead of rendering empty, and a
   quote line holding only `+` no longer draws a `continuation-marker-refused`
   lint warning: the writer escapes both as `\+` (#39).
+- Text at the start of a list item, quote line or admonition body no longer
+  opens a block (`- x`, `# x`, `1. x`, `---`), a data cell holding only dashes
+  no longer turns its row into a table separator, `#word` no longer renders as
+  a tag, a lone `#` in a caption no longer becomes a number, and a newline in
+  inline code no longer breaks the line (#42).
 
 ## 0.1.6 - 2026-10-14
 

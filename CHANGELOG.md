@@ -1,10 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.1.7 - 2026-10-24
 
-- A list item whose whole text is `+` keeps it instead of rendering empty, and a
-  quote line holding only `+` no longer draws a `continuation-marker-refused`
-  lint warning: the writer escapes both as `\+` (#39).
+- A list item or quote line holding only `+` keeps it as text (#39, #41).
+- Text at the start of a list item, quote line or admonition body no longer
+  opens a block, a dash-only table cell no longer drops its row, and `#` in
+  text no longer becomes a tag or caption number (#42, #43).
+- A newline inside inline code becomes a space instead of splitting a list item
+  or quote (#42, #43).
 
 ## 0.1.6 - 2026-10-14
 

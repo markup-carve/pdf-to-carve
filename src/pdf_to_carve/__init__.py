@@ -17,4 +17,4 @@ __all__ = [
     "convert",
     "to_carve",
 ]
-__version__ = "0.1.6"
+__version__ = "0.1.7"

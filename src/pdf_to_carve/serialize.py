@@ -8,8 +8,8 @@ from urllib.parse import quote
 
 from .model import HUMAN_CORRECTED_WARNING, Block, Document, Inline
 
-_SPECIAL = re.compile(r"([\\/*_~=\[\]{}<>`])")
-_BLOCK_START = re.compile(r"^(?:#{1,6} |[-+>:] |\||:::)")
+_SPECIAL = re.compile(r"([\\/*_~=\[\]{}<>`#])")
+_BLOCK_START = re.compile(r"^(?:[-+>:] |\||:::)")
 _ORDERED_BLOCK_START = re.compile(r"^([A-Za-z0-9]+)([.)]) ")
 _URL_SAFE = "/:#?&=@[]!$'*+,;%-._~"
 
@@ -43,17 +43,19 @@ def _escape_url(url: str) -> str:
 
 
 def _escape_block_start(text: str) -> str:
-    """Keep literal paragraph text from opening a Carve block."""
-    if _BLOCK_START.match(text):
-        return f"\\{text}"
-    if text == ":::" or re.fullmatch(r"-{3,}", text):
+    """Keep literal text at a line start from opening a Carve block.
+
+    Applies wherever the text begins a line: a paragraph, a list item after its
+    marker, a quote line, an admonition body. A lone `+` there is a continuation
+    marker, and `\\---` would still render an en dash, so each dash is escaped.
+    """
+    if text == "+":
+        return "\\+"
+    if re.fullmatch(r"-{3,}", text):
+        return text.replace("-", "\\-")
+    if _BLOCK_START.match(text) or text == ":::":
         return f"\\{text}"
     return _ORDERED_BLOCK_START.sub(r"\1\\\2 ", text, count=1)
-
-
-def _escape_continuation(text: str) -> str:
-    """A lone `+` in a list item or quote line is a continuation marker, not text."""
-    return "\\+" if text == "+" else text
 
 
 def _inline(
@@ -137,12 +139,21 @@ def _inline(
 
 
 def _code_span(text: str) -> str:
+    # A raw newline would start a new line inside a list item or quote.
+    text = text.replace("\r", "").replace("\n", " ")
     ticks = "`" * (max((len(m.group()) for m in re.finditer(r"`+", text)), default=0) + 1)
     # A delimiter directly touching a backtick-only edge is indistinguishable
     # from one longer delimiter. Carve follows the familiar code-span padding
     # rule: one interior space disambiguates it and is not part of the value.
     padding = " " if text.startswith("`") or text.endswith("`") else ""
     return f"{ticks}{padding}{text}{padding}{ticks}"
+
+
+def _escape_separator_cell(text: str) -> str:
+    """A data cell shaped like `---` or `:-:` would turn its row into a separator."""
+    if re.fullmatch(r":?-+:?", text):
+        return re.sub(r"([:-])", r"\\\1", text)
+    return text
 
 
 def _table_rows(rows: list[list[dict[str, Any]]], width: int) -> list[str]:
@@ -157,7 +168,7 @@ def _table_rows(rows: list[list[dict[str, Any]]], width: int) -> list[str]:
                 cursor += 1
             colspan = int(cell["colspan"])
             rowspan = int(cell["rowspan"])
-            cells[cursor] = _inline(cell["content"], table=True)
+            cells[cursor] = _escape_separator_cell(_inline(cell["content"], table=True))
             for column in range(cursor, cursor + colspan):
                 active[column] = True
                 occupied[column] = max(occupied[column], rowspan)
@@ -196,7 +207,7 @@ def _block(block: Block) -> str:
         for index, item in enumerate(d["items"]):
             marker = f"{d['start'] + index}." if d["ordered"] else "-"
             task = f" [{'x' if item['checked'] else ' '}]" if "checked" in item else ""
-            lines.append(f"{marker}{task} {_escape_continuation(_inline(item['content']))}")
+            lines.append(f"{marker}{task} {_escape_block_start(_inline(item['content']))}")
         return "\n".join(lines)
     if block.type == "code_block":
         text = d["text"].rstrip("\n")
@@ -206,7 +217,7 @@ def _block(block: Block) -> str:
         return f"{fence}{info}\n{text}\n{fence}"
     if block.type == "quote":
         lines = "\n".join(
-            f"> {_escape_continuation(line)}" if line else ">"
+            f"> {_escape_block_start(line)}" if line else ">"
             for line in _inline(d["content"]).splitlines()
         )
         if "attribution" in d:
@@ -241,7 +252,7 @@ def _block(block: Block) -> str:
         return result
     if block.type == "admonition":
         title = f"*{_inline(d['title'])}*\n\n" if "title" in d else ""
-        return f"::: {d['kind']}\n{title}{_inline(d['content'])}\n:::"
+        return f"::: {d['kind']}\n{title}{_escape_block_start(_inline(d['content']))}\n:::"
     if block.type == "thematic_break":
         return "---"
     if block.type == "page_break":

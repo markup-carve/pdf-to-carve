@@ -279,6 +279,60 @@ def test_a_quote_holding_only_a_plus_escapes_it() -> None:
     assert "<p>+</p>" in carve.to_html(source)
 
 
+def _containers(content: list[dict[str, object]]) -> dict[str, dict[str, object]]:
+    return {
+        "bullet": {"type": "list", "ordered": False, "items": [{"content": content}]},
+        "ordered": {"type": "list", "ordered": True, "start": 1, "items": [{"content": content}]},
+        "quote": {"type": "quote", "content": content},
+        "admonition": {"type": "admonition", "kind": "note", "content": content},
+    }
+
+
+LINE_START_TEXTS = ["+", "+ x", "- x", "> x", "# x", "1. x", ": x", "---", "::: x", "| x"]
+
+
+@pytest.mark.parametrize("container", ["bullet", "ordered", "quote", "admonition"])
+@pytest.mark.parametrize("value", LINE_START_TEXTS)
+def test_text_at_a_container_line_start_stays_text(container: str, value: str) -> None:
+    """`- - x` nested a list, `> # x` made a heading and `- ---` a rule: text at
+    the start of a list item, quote line or admonition body opened a block."""
+    block = _containers([_text(value)])[container]
+    source = to_carve(Document.from_json({"version": 1, "blocks": [block]}))
+    html = carve.to_html(source)
+    assert value.replace(">", "&gt;") in html
+    lists = 1 if container in {"bullet", "ordered"} else 0
+    assert html.count("<ul") + html.count("<ol") == lists, source
+    assert html.count("<blockquote") == (container == "quote"), source
+    assert "<h1" not in html and "<hr" not in html and "<table" not in html, source
+    assert carve.lint(source) == []
+
+
+@pytest.mark.parametrize("value", ["#x", "#42", "a # b"])
+def test_a_hash_stays_text(value: str) -> None:
+    """`#42` rendered as a tag, and a lone `#` in a caption as a number."""
+    paragraph = _render({"type": "paragraph", "content": [_text(value)]})
+    assert f"<p>{value}</p>" in paragraph
+    caption = _render({"type": "figure", "src": "a.png", "alt": "a", "caption": [_text(value)]})
+    assert f"<figcaption>{value}</figcaption>" in caption
+
+
+@pytest.mark.parametrize("value", ["-", "---", ":-:", "-:"])
+def test_a_dash_only_table_cell_keeps_its_row(value: str) -> None:
+    """A data row of `| --- |` read as a separator and the row disappeared."""
+    html = _render(
+        {"type": "table", "headers": [[_text("h")]], "rows": [[{"content": [_text(value)]}]]}
+    )
+    assert f"<td>{value}</td>" in html
+
+
+@pytest.mark.parametrize("container", ["bullet", "quote"])
+def test_a_newline_in_inline_code_does_not_break_the_line(container: str) -> None:
+    content = [_text("a "), {"type": "code", "text": "x\n- y"}]
+    html = _render(_containers(content)[container])
+    assert "<code>x - y</code>" in html
+    assert html.count("<li>") <= 1
+
+
 @pytest.mark.parametrize(
     "url",
     [

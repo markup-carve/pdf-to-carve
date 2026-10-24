@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pdf-to-carve"
-version = "0.1.7"
+version = "0.1.8"
 description = "Convert PDFs and document images into validated Carve source"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -27,7 +27,7 @@ classifiers = [
 dependencies = ["pypdfium2>=5.0,<6", "Pillow>=10,<13"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.3", "pytest-cov>=5", "ruff>=0.11", "jsonschema>=4.25,<5", "PyMuPDF>=1.24,<2", "carve-lang==0.1.10"]
+dev = ["pytest>=8.3", "pytest-cov>=5", "ruff>=0.11", "jsonschema>=4.25,<5", "PyMuPDF>=1.24,<2", "carve-lang==0.1.11"]
 pymupdf = ["PyMuPDF>=1.24,<2"]
 
 [project.scripts]

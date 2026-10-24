@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.8 - 2026-10-24
+
+Conversion examples and conformance checks use the published Carve 0.1.12 engine through its Python binding.
+
+### Improvements
+
+- Rendered examples follow the latest table span, wrapped attribute, and continuation marker behavior.
+
+**Full Changelog**: https://github.com/markup-carve/pdf-to-carve/compare/v0.1.7...v0.1.8
+
 ## 0.1.7 - 2026-10-24
 
 - A list item or quote line holding only `+` keeps it as text (#39, #41).

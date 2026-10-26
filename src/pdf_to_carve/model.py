@@ -202,7 +202,7 @@ class Block:
             task_state: bool | None = None
             for i, item in enumerate(items):
                 item_obj = _object(item, f"{path}.items[{i}]")
-                _keys(item_obj, {"content", "checked"}, f"{path}.items[{i}]")
+                _keys(item_obj, {"content", "checked", "taskState"}, f"{path}.items[{i}]")
                 row: dict[str, Any] = {
                     "content": _inlines(item_obj.get("content"), f"{path}.items[{i}].content")
                 }
@@ -210,7 +210,24 @@ class Block:
                     if not isinstance(item_obj["checked"], bool):
                         raise DocumentError(f"{path}.items[{i}].checked must be a boolean")
                     row["checked"] = item_obj["checked"]
-                is_task = "checked" in item_obj
+                if "taskState" in item_obj:
+                    state = item_obj["taskState"]
+                    if not isinstance(state, str) or state not in {
+                        " ",
+                        "x",
+                        "X",
+                        "_",
+                        "-",
+                        "/",
+                        "!",
+                        ">",
+                        "?",
+                    }:
+                        raise DocumentError(f"{path}.items[{i}].taskState is not supported")
+                    if "checked" in item_obj and item_obj["checked"] != (state in {"x", "X"}):
+                        raise DocumentError(f"{path}.items[{i}].checked conflicts with taskState")
+                    row["taskState"] = state
+                is_task = "checked" in item_obj or "taskState" in item_obj
                 if task_state is None:
                     task_state = is_task
                 elif task_state != is_task:

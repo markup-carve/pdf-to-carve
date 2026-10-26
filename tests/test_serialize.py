@@ -19,6 +19,27 @@ def test_serializes_native_carve_without_markdown_stage() -> None:
     assert "![Architecture](assets/page-1-figure-1.png){#architecture}" in source
 
 
+def test_serializes_all_task_states() -> None:
+    states = [" ", "x", "X", "_", "-", "/", "!", ">", "?"]
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {
+                    "type": "list",
+                    "items": [
+                        {"content": [{"type": "text", "text": str(i)}], "taskState": state}
+                        for i, state in enumerate(states)
+                    ],
+                }
+            ],
+        }
+    )
+    source = to_carve(document)
+    for i, state in enumerate(states):
+        assert f"- [{state}] {i}" in source
+
+
 def test_escapes_document_text_and_variable_code_fences() -> None:
     raw = {
         "version": 1,

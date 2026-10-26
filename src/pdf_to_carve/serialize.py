@@ -206,7 +206,10 @@ def _block(block: Block) -> str:
         lines = []
         for index, item in enumerate(d["items"]):
             marker = f"{d['start'] + index}." if d["ordered"] else "-"
-            task = f" [{'x' if item['checked'] else ' '}]" if "checked" in item else ""
+            state = item.get("taskState")
+            if state is None and "checked" in item:
+                state = "x" if item["checked"] else " "
+            task = f" [{state}]" if state is not None else ""
             lines.append(f"{marker}{task} {_escape_block_start(_inline(item['content']))}")
         return "\n".join(lines)
     if block.type == "code_block":

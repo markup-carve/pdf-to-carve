@@ -83,7 +83,8 @@
       "required": ["content"],
       "properties": {
         "content": {"$ref": "#/$defs/inlines"},
-        "checked": {"type": "boolean"}
+        "checked": {"type": "boolean"},
+        "taskState": {"enum": [" ", "x", "X", "_", "-", "/", "!", ">", "?"]}
       }
     },
     "tableCell": {

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.9 - 2026-10-26
+
+Importer list items now preserve progress, blocked, and open-alias task states when converted to Carve.
+
+### Improvements
+
+- Task lists retain their authored state markers, including `[/]`, `[!]`, and `[_]` (#47).
+- Conversion examples and conformance checks use the published Carve 0.1.12 engine (#47).
+
+**Full Changelog**: https://github.com/markup-carve/pdf-to-carve/compare/v0.1.8...v0.1.9
+
 ## 0.1.8 - 2026-10-24
 
 Conversion examples and conformance checks use the published Carve 0.1.12 engine through its Python binding.

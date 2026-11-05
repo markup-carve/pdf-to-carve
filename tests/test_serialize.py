@@ -191,7 +191,7 @@ def test_table_spans_emit_native_carve_placeholders() -> None:
         }
     )
     assert to_carve(document) == (
-        "|= Region |=> Q1 |=~ Q2 |= Q3 |\n"
+        "|= Region |={>} Q1 |={~} Q2 |= Q3 |\n"
         "| EMEA | 12 | 15 | 19 |\n"
         "| APAC | 8 | 11 | 22 |\n"
         "| ^ | 20 | < | 25 |\n"

@@ -389,3 +389,15 @@ def test_confidence_comments_preserve_rendered_document() -> None:
     assert carve.to_html(to_carve(document, confidence_annotations=True)) == carve.to_html(
         to_carve(document)
     )
+
+
+@pytest.mark.parametrize("ordered", [False, True])
+def test_adjacent_lists_stay_two_lists(ordered: bool) -> None:
+    item = {"content": [_text("item")]}
+    lists = [{"type": "list", "ordered": ordered, "start": 1, "items": [item]}] * 2
+    breaks = [{"type": "thematic_break"}] * 2
+    document = Document.from_json({"version": 1, "blocks": [*breaks, *lists]})
+    html = carve.to_html(to_carve(document))
+    tag = "<ol>" if ordered else "<ul>"
+    assert html.count(tag) == 2, html
+    assert html.count("<hr>") == 2, html

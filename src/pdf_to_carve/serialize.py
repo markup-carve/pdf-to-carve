@@ -257,10 +257,14 @@ def _block(block: Block) -> str:
         title = f"*{_inline(d['title'])}*\n\n" if "title" in d else ""
         return f"::: {d['kind']}\n{title}{_escape_block_start(_inline(d['content']))}\n:::"
     if block.type == "thematic_break":
-        return "---"
+        return "***"
     if block.type == "page_break":
         return "::: page-break\n\n:::"
     raise AssertionError(f"unhandled block type: {block.type}")
+
+
+def _is_task(item: dict[str, Any]) -> bool:
+    return item.get("taskState") is not None or "checked" in item
 
 
 def to_carve(document: Document, *, confidence_annotations: bool = False) -> str:
@@ -276,17 +280,17 @@ def to_carve(document: Document, *, confidence_annotations: bool = False) -> str
         rendered = _block(block)
         if not rendered:
             continue
-        ambiguous_boundary = (
-            block.type == "thematic_break"
-            and (not sections or (previous_block and previous_block.type == "thematic_break"))
-        ) or (
+        list_boundary = (
             block.type == "list"
             and previous_block is not None
             and previous_block.type == "list"
             and previous_block.data["ordered"] == block.data["ordered"]
+            and _is_task(previous_block.data["items"][-1]) == _is_task(block.data["items"][0])
         )
-        if ambiguous_boundary:
-            sections.append("%% pdf-to-carve block boundary")
+        if list_boundary:
+            # Only a run of three blank lines parts two lists (CARVE-P9-014);
+            # a comment between them is erased before layout.
+            sections[-1] += "\n\n"
         if confidence_annotations:
             entry = provenance.get(index)
             page = "unknown" if entry is None else str(entry.page)
@@ -311,5 +315,5 @@ def to_carve(document: Document, *, confidence_annotations: bool = False) -> str
         sections.append(rendered)
         previous_block = block
     if annotations:
-        sections.append("\n".join(annotations))
+        sections.append("\n\n".join(annotations))
     return "\n\n".join(sections).rstrip() + "\n" if sections else ""

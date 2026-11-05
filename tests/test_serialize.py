@@ -126,7 +126,7 @@ def test_math_and_thematic_break_use_native_carve_syntax() -> None:
             ],
         }
     )
-    assert to_carve(document) == "$`x^2`\n\n---\n"
+    assert to_carve(document) == "$`x^2`\n\n***\n"
 
 
 def test_figure_alt_keeps_plain_underscores_and_escapes_brackets() -> None:
@@ -323,20 +323,19 @@ def test_confidence_annotation_names_a_missing_score() -> None:
         }
     )
     assert to_carve(document, confidence_annotations=True) == (
-        "%% pdf-to-carve block boundary\n\n---\n\n"
-        "%% pdf-to-carve block=0 page=1 confidence=unknown\n"
+        "***\n\n%% pdf-to-carve block=0 page=1 confidence=unknown\n"
     )
 
 
 def test_confidence_annotation_covers_a_block_without_provenance() -> None:
     document = Document.from_json({"version": 1, "blocks": [{"type": "thematic_break"}]})
     assert to_carve(document, confidence_annotations=True) == (
-        "%% pdf-to-carve block boundary\n\n---\n\n"
-        "%% pdf-to-carve block=0 page=unknown confidence=unknown\n"
+        "***\n\n%% pdf-to-carve block=0 page=unknown confidence=unknown\n"
     )
 
 
 def test_adjacent_lists_and_leading_thematic_breaks_keep_block_boundaries() -> None:
+    # Comments are erased before layout, so only three blank lines part two lists.
     text = [{"type": "text", "text": "item"}]
     document = Document.from_json(
         {
@@ -349,5 +348,35 @@ def test_adjacent_lists_and_leading_thematic_breaks_keep_block_boundaries() -> N
             ],
         }
     )
-    source = to_carve(document)
-    assert source.count("%% pdf-to-carve block boundary") == 3
+    assert to_carve(document) == "***\n\n***\n\n- item\n\n\n\n- item\n"
+
+
+def test_a_plain_list_and_a_task_list_need_no_boundary() -> None:
+    text = [{"type": "text", "text": "item"}]
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {"type": "list", "items": [{"content": text}]},
+                {"type": "list", "items": [{"content": text, "checked": False}]},
+            ],
+        }
+    )
+    assert to_carve(document) == "- item\n\n- [ ] item\n"
+
+
+def test_confidence_annotations_are_separate_comment_paragraphs() -> None:
+    text = [{"type": "text", "text": "x"}]
+    document = Document.from_json(
+        {
+            "version": 1,
+            "blocks": [
+                {"type": "paragraph", "content": text},
+                {"type": "paragraph", "content": text},
+            ],
+        }
+    )
+    assert to_carve(document, confidence_annotations=True).endswith(
+        "%% pdf-to-carve block=0 page=unknown confidence=unknown\n\n"
+        "%% pdf-to-carve block=1 page=unknown confidence=unknown\n"
+    )

@@ -227,7 +227,7 @@ def _block(block: Block) -> str:
             lines += f"\n^ {_inline(d['attribution'])}"
         return lines
     if block.type == "table":
-        markers = {"left": "", "right": ">", "center": "~"}
+        markers = {"left": "", "right": "{>}", "center": "{~}"}
         alignments = d.get("alignments", ("left",) * len(d["headers"]))
         header = "".join(
             f"|={markers[alignment]} {_inline(cell, table=True)} "

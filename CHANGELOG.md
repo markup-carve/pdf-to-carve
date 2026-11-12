@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.10 - 2026-11-12
+
+Converted documents follow the Carve 0.1.13 engine: braced table alignment, `***` thematic breaks and a list boundary every engine reads.
+
+### Breaking
+
+- Aligned table cells are written with braced alignment (`|={>}`, `|={~}`); Carve engines before 0.1.13 do not read it (#51).
+
+### Fixes
+
+- Two adjacent lists of the same kind are kept apart with three blank lines instead of a comment the current engines ignore (#50).
+
+### Improvements
+
+- Thematic breaks are written as `***`, the spelling `carve fmt` writes (#50).
+- Conversion examples and conformance checks use the published Carve 0.1.13 engine (#51).
+
+**Full Changelog**: https://github.com/markup-carve/pdf-to-carve/compare/v0.1.9...v0.1.10
+
 ## 0.1.9 - 2026-10-26
 
 Importer list items now preserve progress, blocked, and open-alias task states when converted to Carve.

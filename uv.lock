@@ -17,17 +17,17 @@ wheels = [
 
 [[package]]
 name = "carve-lang"
-version = "0.1.12"
+version = "0.1.13"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e5/91/1227fcd1c4949c5f39f6e7c7754116e22fc0c82f82a19c8048a1b93f8566/carve_lang-0.1.12.tar.gz", hash = "sha256:62f4fd92672e9c4363311ad00aa5c64aa3e541c9d3e78348aacbaa4dad5c8fbe", size = 51475, upload-time = "2026-10-25T21:53:54.544Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b9/25/244faaabaaef532238afca1ad76074fc93b63b170be2290a6a009e91481d/carve_lang-0.1.13.tar.gz", hash = "sha256:1c47cd6a3de2ec18675fbfa3012502aae321821c3fdefe90e359e5ed1dde4ced", size = 46737, upload-time = "2026-11-12T12:13:27.068Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/71/89/6add265d44d6a47b5d6ef3055b0971398aa9a1d0a2ed3373a7cff1d80d31/carve_lang-0.1.12-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:a0cb6aeb005f23d32faa4f1befd3c4e9700d07b91d09d788cee9059568b526a5", size = 4464889, upload-time = "2026-10-25T21:53:43.504Z" },
-    { url = "https://files.pythonhosted.org/packages/db/d7/d55b271f53c9fa7d8f6e2f406c1f34946116f97448cf627ac6ede543427c/carve_lang-0.1.12-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:f24b70f3873904212e837c87386f922fbf8277fa74716f48a0388aac7e2c803a", size = 4275545, upload-time = "2026-10-25T21:53:46.727Z" },
-    { url = "https://files.pythonhosted.org/packages/83/fa/4ce955103fcf3d5adc2edabb089569bfa22b790ce9a4171ff267a0bd885a/carve_lang-0.1.12-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:509198c08cba2bda9fd0700f5b58fce07478991045f33068fcb82c7df479d8ee", size = 4664822, upload-time = "2026-10-25T21:53:48.091Z" },
-    { url = "https://files.pythonhosted.org/packages/03/0c/dc26afbd303c63a71a44efdbf839d69f6f79605e16b2bef92bbf08e349aa/carve_lang-0.1.12-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6f4e41e648e171971cc89bba79d7e36d26d7ee2173c12e91ccc059bee4d236c9", size = 4820841, upload-time = "2026-10-25T21:53:49.47Z" },
-    { url = "https://files.pythonhosted.org/packages/5e/f9/f0b0625626f22987af869cdd67a975a0dc3f471fe956b982a23728dcf0f2/carve_lang-0.1.12-cp38-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:e4cd4fc18852a3a8afb309401921cbe20e6ba97199346b50ce1229b71bcfa952", size = 4839474, upload-time = "2026-10-25T21:53:50.652Z" },
-    { url = "https://files.pythonhosted.org/packages/17/c3/9d2733800401f3f917d8800e9bcf6bd300faffe8e94b865dad55afbb6266/carve_lang-0.1.12-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:f8d74197706224b4c3828e16f4342930c4a8e1e333bfc8757cb2172a50cf7c31", size = 5082202, upload-time = "2026-10-25T21:53:51.988Z" },
-    { url = "https://files.pythonhosted.org/packages/28/25/c8a63ba8af2a2bf0dbf6c2a8f32268b59f74bcd26aaf40b971180cc802d2/carve_lang-0.1.12-cp38-abi3-win_amd64.whl", hash = "sha256:529f558113b14fbbf1913774eb2cb28ac3f87e971b4a2c396d6219576aca8a82", size = 4433667, upload-time = "2026-10-25T21:53:53.296Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/14/14874573571a8f0b2d00f0fd673ac1b1b15ad229e76e9c58d79bb5eb3473/carve_lang-0.1.13-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:45b1dee45d64486aefa70e13a28c12e33959110f016806bbd2968db9d4eacd51", size = 5335734, upload-time = "2026-11-12T12:13:14.481Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/0a/1cc85a6857e2be2749b354ccc3e3f3ca610209f881606bccaa19a0b6bab6/carve_lang-0.1.13-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:f24ce488d3d689447d7adde9c1edddbbe67b211616e298075d7fef1e3f44eef7", size = 5125048, upload-time = "2026-11-12T12:13:16.187Z" },
+    { url = "https://files.pythonhosted.org/packages/96/cb/1b62972aff703ef549328033e1d63d6f4adadb41497defd7d17a79dae3cd/carve_lang-0.1.13-cp38-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:3b53d0fe4fafe4531092ca50e9c96bb1d5b3a13fc18240b9944daf478017d9e2", size = 5557260, upload-time = "2026-11-12T12:13:17.928Z" },
+    { url = "https://files.pythonhosted.org/packages/97/16/52ace22bfc842232e3a21bbb6f56c31c3cb9d201a09c4e1f21faddefab3a/carve_lang-0.1.13-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:393da6f8cc037d0de7b87329f9e0918fb6da2282b0e753ffe1ee91feb804f85d", size = 5758170, upload-time = "2026-11-12T12:13:20.488Z" },
+    { url = "https://files.pythonhosted.org/packages/af/59/3319c554203308802f887d31684fea0cd6c49042f792dacde07df021989d/carve_lang-0.1.13-cp38-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:abb0992ae274adc65cd60dff1b8d523328787b2120d6ddf8cbc9ff9c6390958f", size = 5732619, upload-time = "2026-11-12T12:13:22.244Z" },
+    { url = "https://files.pythonhosted.org/packages/36/f2/bdee9874940d05f77b07b4cab4acc74eef974f6c1f841ff7b98d95b06e1e/carve_lang-0.1.13-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:70c8b9f826f67c93fc1278194b9a2ee0924cdab1147d3d27a261302046c580ab", size = 6040529, upload-time = "2026-11-12T12:13:24.063Z" },
+    { url = "https://files.pythonhosted.org/packages/11/00/81d1ddd58d3d87522824b37dcb40e4c45ede9e0453ab49438c89f0083ef1/carve_lang-0.1.13-cp38-abi3-win_amd64.whl", hash = "sha256:770cd3aedd547282812f75c0c1c0c7168db86ea9e9741e29f6c5f2cbae017900", size = 5340846, upload-time = "2026-11-12T12:13:25.695Z" },
 ]
 
 [[package]]
@@ -254,7 +254,7 @@ pymupdf = [
 
 [package.metadata]
 requires-dist = [
-    { name = "carve-lang", marker = "extra == 'dev'", specifier = "==0.1.12" },
+    { name = "carve-lang", marker = "extra == 'dev'", specifier = "==0.1.13" },
     { name = "jsonschema", marker = "extra == 'dev'", specifier = ">=4.25,<5" },
     { name = "pillow", specifier = ">=10,<13" },
     { name = "pymupdf", marker = "extra == 'dev'", specifier = ">=1.24,<2" },

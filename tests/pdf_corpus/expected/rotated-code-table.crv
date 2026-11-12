@@ -7,7 +7,7 @@ def greet(name):
 return f'Hello {name}'
 ```
 
-|= Region |=> Revenue |
+|= Region |={>} Revenue |
 | North | 1,240 |
 | South | 980 |
 ^ Table 1: Revenue

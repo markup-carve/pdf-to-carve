@@ -41,7 +41,7 @@ function greet(string $name): string {
 
 ## Simple table
 
-|= Region |=> Revenue |=> Growth |
+|= Region |={>} Revenue |={>} Growth |
 | North | 1,240 | 13.7% |
 | South | 980 | 4.1% |
 | Total | 2,220 | 9.5% |

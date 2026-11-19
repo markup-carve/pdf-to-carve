@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.11'",
@@ -18,17 +18,7 @@ wheels = [
 [[package]]
 name = "carve-lang"
 version = "0.1.13"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b9/25/244faaabaaef532238afca1ad76074fc93b63b170be2290a6a009e91481d/carve_lang-0.1.13.tar.gz", hash = "sha256:1c47cd6a3de2ec18675fbfa3012502aae321821c3fdefe90e359e5ed1dde4ced", size = 46737, upload-time = "2026-11-12T12:13:27.068Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/eb/14/14874573571a8f0b2d00f0fd673ac1b1b15ad229e76e9c58d79bb5eb3473/carve_lang-0.1.13-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:45b1dee45d64486aefa70e13a28c12e33959110f016806bbd2968db9d4eacd51", size = 5335734, upload-time = "2026-11-12T12:13:14.481Z" },
-    { url = "https://files.pythonhosted.org/packages/f0/0a/1cc85a6857e2be2749b354ccc3e3f3ca610209f881606bccaa19a0b6bab6/carve_lang-0.1.13-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:f24ce488d3d689447d7adde9c1edddbbe67b211616e298075d7fef1e3f44eef7", size = 5125048, upload-time = "2026-11-12T12:13:16.187Z" },
-    { url = "https://files.pythonhosted.org/packages/96/cb/1b62972aff703ef549328033e1d63d6f4adadb41497defd7d17a79dae3cd/carve_lang-0.1.13-cp38-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:3b53d0fe4fafe4531092ca50e9c96bb1d5b3a13fc18240b9944daf478017d9e2", size = 5557260, upload-time = "2026-11-12T12:13:17.928Z" },
-    { url = "https://files.pythonhosted.org/packages/97/16/52ace22bfc842232e3a21bbb6f56c31c3cb9d201a09c4e1f21faddefab3a/carve_lang-0.1.13-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:393da6f8cc037d0de7b87329f9e0918fb6da2282b0e753ffe1ee91feb804f85d", size = 5758170, upload-time = "2026-11-12T12:13:20.488Z" },
-    { url = "https://files.pythonhosted.org/packages/af/59/3319c554203308802f887d31684fea0cd6c49042f792dacde07df021989d/carve_lang-0.1.13-cp38-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:abb0992ae274adc65cd60dff1b8d523328787b2120d6ddf8cbc9ff9c6390958f", size = 5732619, upload-time = "2026-11-12T12:13:22.244Z" },
-    { url = "https://files.pythonhosted.org/packages/36/f2/bdee9874940d05f77b07b4cab4acc74eef974f6c1f841ff7b98d95b06e1e/carve_lang-0.1.13-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:70c8b9f826f67c93fc1278194b9a2ee0924cdab1147d3d27a261302046c580ab", size = 6040529, upload-time = "2026-11-12T12:13:24.063Z" },
-    { url = "https://files.pythonhosted.org/packages/11/00/81d1ddd58d3d87522824b37dcb40e4c45ede9e0453ab49438c89f0083ef1/carve_lang-0.1.13-cp38-abi3-win_amd64.whl", hash = "sha256:770cd3aedd547282812f75c0c1c0c7168db86ea9e9741e29f6c5f2cbae017900", size = 5340846, upload-time = "2026-11-12T12:13:25.695Z" },
-]
+source = { git = "https://github.com/markup-carve/carve-py?rev=743622b599b71b7f6b938fa3d7bd74257fad124b#743622b599b71b7f6b938fa3d7bd74257fad124b" }
 
 [[package]]
 name = "colorama"
@@ -254,7 +244,7 @@ pymupdf = [
 
 [package.metadata]
 requires-dist = [
-    { name = "carve-lang", marker = "extra == 'dev'", specifier = "==0.1.13" },
+    { name = "carve-lang", marker = "extra == 'dev'", git = "https://github.com/markup-carve/carve-py?rev=743622b599b71b7f6b938fa3d7bd74257fad124b" },
     { name = "jsonschema", marker = "extra == 'dev'", specifier = ">=4.25,<5" },
     { name = "pillow", specifier = ">=10,<13" },
     { name = "pymupdf", marker = "extra == 'dev'", specifier = ">=1.24,<2" },

@@ -30,9 +30,13 @@ python examples/render_markdown.py examples/*/result.crv
 
 ## Which Carve renders these
 
-The Markdown step uses `carve-lang`, the PyO3 binding over carve-rs, pinned to an
-exact version in `pyproject.toml` and resolved in `uv.lock`. `uv sync --extra dev`
-installs it; nothing else is needed.
+The Markdown step uses `carve-lang`, the PyO3 binding over carve-rs, pinned in
+`pyproject.toml` and resolved in `uv.lock`. `uv sync --extra dev` installs it.
+On the Carve 0.2 line the pin is a carve-py `next2` commit built from source, and
+that engine has not ported its Markdown writer yet (markup-carve/carve-rs#4327):
+`render_markdown.py` stops with `markdown writer not available yet`, and the
+snapshot test skips each case with that reason. The committed `.md` files are the
+0.1 renderings until the writer lands.
 
 The renderer used to be `@markup-carve/carve` through a Node script, which is why
 this section used to name a Carve JS revision by hand. Two engines at two

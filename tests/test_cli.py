@@ -13,7 +13,8 @@ def test_from_json_writes_source_and_replayable_json(tmp_path: Path) -> None:
     output = tmp_path / "output.crv"
     saved = tmp_path / "saved.json"
     assert main([str(source), "--from-json", "-o", str(output), "--save-json", str(saved)]) == 0
-    assert output.read_text().startswith("---yaml")
+    # C2-W-052: YAML frontmatter takes the bare `---` opener.
+    assert output.read_text().startswith("---\n")
     assert json.loads(saved.read_text()) == json.loads(source.read_text())
 
 

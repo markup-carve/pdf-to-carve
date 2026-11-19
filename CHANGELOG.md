@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Breaking
+
+- Converted documents are Carve 0.2 source: headings are written with `=`, YAML frontmatter opens with a bare `---`, underline, strike and highlight always keep their braces, and a substitution is written as a deletion followed by an insertion (`{-old-}{+new+}`).
+
 ## 0.1.10 - 2026-11-12
 
 Converted documents follow the Carve 0.1.13 engine: braced table alignment, `***` thematic breaks and a list boundary every engine reads.

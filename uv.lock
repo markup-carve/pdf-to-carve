@@ -18,7 +18,7 @@ wheels = [
 [[package]]
 name = "carve-lang"
 version = "0.1.13"
-source = { git = "https://github.com/markup-carve/carve-py?rev=8ae3d02c01a80c8ea633ad50b5152356ed594459#8ae3d02c01a80c8ea633ad50b5152356ed594459" }
+source = { git = "https://github.com/markup-carve/carve-py?rev=ae2988d4b3443836fc51a3c4a719a7bbd4166cde#ae2988d4b3443836fc51a3c4a719a7bbd4166cde" }
 
 [[package]]
 name = "colorama"
@@ -244,7 +244,7 @@ pymupdf = [
 
 [package.metadata]
 requires-dist = [
-    { name = "carve-lang", marker = "extra == 'dev'", git = "https://github.com/markup-carve/carve-py?rev=8ae3d02c01a80c8ea633ad50b5152356ed594459" },
+    { name = "carve-lang", marker = "extra == 'dev'", git = "https://github.com/markup-carve/carve-py?rev=ae2988d4b3443836fc51a3c4a719a7bbd4166cde" },
     { name = "jsonschema", marker = "extra == 'dev'", specifier = ">=4.25,<5" },
     { name = "pillow", specifier = ">=10,<13" },
     { name = "pymupdf", marker = "extra == 'dev'", specifier = ">=1.24,<2" },

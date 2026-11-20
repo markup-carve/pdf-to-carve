@@ -34,8 +34,8 @@ produces: `=` headings, a bare `---` frontmatter opener, braced underline,
 strike and highlight, and a substitution written as a deletion followed by an
 insertion (`{-old-}{+new+}`). The semantic round-trip tests use the unreleased
 Python binding of the 0.2 engine, carve-py `next2`, pinned by commit in the
-`dev` extra and built from source, so `uv sync --extra dev` needs a Rust
-toolchain until a 0.2 binding is published.
+`dev` extra and built from source, so `uv sync --extra dev` needs Rust 1.88
+or newer until a 0.2 binding is published.
 
 The writer is checked against that binding. See Carve's
 [versioning policy](https://github.com/markup-carve/carve/blob/main/VERSIONING.md)

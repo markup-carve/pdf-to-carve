@@ -258,18 +258,11 @@ def test_a_figure_id_binds_to_the_image_and_not_to_the_text() -> None:
     [
         {"type": "list", "ordered": False, "items": [{"content": [_text("+")]}]},
         {"type": "list", "ordered": True, "start": 1, "items": [{"content": [_text("+")]}]},
-        pytest.param(
-            {
-                "type": "list",
-                "ordered": False,
-                "items": [{"checked": False, "content": [_text("+")]}],
-            },
-            marks=pytest.mark.xfail(
-                reason="carve-rs next2 lints an unchecked task box as blank-reference-label "
-                "(markup-carve/carve-rs#4350)",
-                strict=True,
-            ),
-        ),
+        {
+            "type": "list",
+            "ordered": False,
+            "items": [{"checked": False, "content": [_text("+")]}],
+        },
     ],
     ids=["bullet", "ordered", "task"],
 )

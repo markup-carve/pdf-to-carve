@@ -54,7 +54,7 @@ The next lines are literal text, not Markdown constructs:
 
 \- not a list item
 
-\*not emphasis\*, \_not emphasis\_, \[not a link\], 2 | 3, C:\\docs\\file, and a \`backtick.
+\*not emphasis\*, \_not emphasis\_, [not a link\], 2 | 3, C:\\docs\\file, and a \`backtick.
 
 ## Image
 

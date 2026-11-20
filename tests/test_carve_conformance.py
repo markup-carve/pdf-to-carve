@@ -258,7 +258,11 @@ def test_a_figure_id_binds_to_the_image_and_not_to_the_text() -> None:
     [
         {"type": "list", "ordered": False, "items": [{"content": [_text("+")]}]},
         {"type": "list", "ordered": True, "start": 1, "items": [{"content": [_text("+")]}]},
-        {"type": "list", "ordered": False, "items": [{"checked": False, "content": [_text("+")]}]},
+        {
+            "type": "list",
+            "ordered": False,
+            "items": [{"checked": False, "content": [_text("+")]}],
+        },
     ],
     ids=["bullet", "ordered", "task"],
 )
@@ -267,7 +271,10 @@ def test_a_list_item_holding_only_a_plus_keeps_it(block: dict[str, object]) -> N
     empty (markup-carve/pdf-to-carve#39)."""
     html = _render(block)
     assert ">+</li>" in html or "> +</li>" in html
-    assert carve.lint(to_carve(Document.from_json({"version": 1, "blocks": [block]}))) == []
+    assert (
+        carve.lint(to_carve(Document.from_json({"version": 1, "blocks": [block]})))["diagnostics"]
+        == []
+    )
 
 
 def test_a_quote_holding_only_a_plus_escapes_it() -> None:
@@ -304,7 +311,7 @@ def test_text_at_a_container_line_start_stays_text(container: str, value: str) -
     assert html.count("<ul") + html.count("<ol") == lists, source
     assert html.count("<blockquote") == (container == "quote"), source
     assert "<h1" not in html and "<hr" not in html and "<table" not in html, source
-    assert carve.lint(source) == []
+    assert carve.lint(source)["diagnostics"] == []
 
 
 @pytest.mark.parametrize("value", ["#x", "#42", "a # b"])

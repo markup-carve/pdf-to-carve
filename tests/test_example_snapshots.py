@@ -50,14 +50,7 @@ def test_markdown_snapshot_matches_its_carve_source(source: Path) -> None:
     rendered = source.with_suffix(".md")
     assert rendered.is_file(), f"{rendered} is missing"
     expected = rendered.read_text(encoding="utf-8")
-    try:
-        actual = carve.to_markdown(source.read_text(encoding="utf-8"))
-    except carve.CarveError as error:
-        if "writer not available yet" not in str(error):
-            raise
-        # The 0.2 engine reserves the Markdown writer target and has not ported
-        # it yet (markup-carve/carve-rs#4327); the snapshots wait for it.
-        pytest.skip(f"Markdown writer not available yet in Carve 0.2 (carve-rs#4327): {error}")
+    actual = carve.to_markdown(source.read_text(encoding="utf-8"))
     assert actual == expected, (
         f"{rendered.relative_to(ROOT)} no longer matches {source.name} under the "
         "pinned engine. Regenerate it - `python examples/render_markdown.py "

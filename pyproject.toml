@@ -27,7 +27,7 @@ classifiers = [
 dependencies = ["pypdfium2>=5.0,<6", "Pillow>=10,<13"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.3", "pytest-cov>=5", "ruff>=0.11", "jsonschema>=4.25,<5", "PyMuPDF>=1.24,<2", "carve-lang @ git+https://github.com/markup-carve/carve-py@66f6ea5b84966c54df3198e10eaa5d960000f549"]
+dev = ["pytest>=8.3", "pytest-cov>=5", "ruff>=0.11", "jsonschema>=4.25,<5", "PyMuPDF>=1.24,<2", "carve-lang @ git+https://github.com/markup-carve/carve-py@8ae3d02c01a80c8ea633ad50b5152356ed594459"]
 pymupdf = ["PyMuPDF>=1.24,<2"]
 
 [project.scripts]

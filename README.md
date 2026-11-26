@@ -1,6 +1,6 @@
 # pdf-to-carve
 
-Convert digital PDFs, scans, and document images to Carve 0.1 source. Extraction produces validated JSON before the deterministic Carve writer runs. See the [Carve documentation](https://markup-carve.github.io/carve/).
+Convert digital PDFs, scans, and document images to Carve 0.2 source. Extraction produces validated JSON before the deterministic Carve writer runs. See the [Carve documentation](https://markup-carve.github.io/carve/).
 
 ## Install
 

@@ -28,13 +28,16 @@ exact-document accuracy plus character and word error rates by document class.
 
 ## Carve compatibility
 
-Generated `.crv` files target the **Carve 0.1 specification**. Carve engine and
-binding releases use independent patch versions, so their package versions are
-not the specification version. For example, this repository's semantic
-round-trip tests currently use the published Python binding
-`carve-lang==0.1.13`, while the Carve specification remains `0.1`.
+Generated `.crv` files target the **Carve 0.2 specification**, in the
+canonical spelling `carve fmt` writes for the constructs the converter
+produces: `=` headings, a bare `---` frontmatter opener, braced underline,
+strike and highlight, and a substitution written as a deletion followed by an
+insertion (`{-old-}{+new+}`). The semantic round-trip tests use the unreleased
+Python binding of the 0.2 engine, carve-py `next2`, pinned by commit in the
+`dev` extra and built from source, so `uv sync --extra dev` needs Rust 1.88
+or newer until a 0.2 binding is published.
 
-The writer is checked against the published binding. See Carve's
+The writer is checked against that binding. See Carve's
 [versioning policy](https://github.com/markup-carve/carve/blob/main/VERSIONING.md)
 and [version map](https://github.com/markup-carve/carve/wiki/Version-Map) for
 the relationship between specification, engine, and binding releases.
@@ -173,6 +176,8 @@ Complex born-digital tables can still benefit from explicitly selecting
 
 The version-1 model accepts headings, paragraphs, flat lists, code blocks,
 quotes, admonitions, spanning tables, figures, thematic breaks, and page breaks.
+A page break is written as a thematic break with the class `page-break`
+(`{.page-break}` on the line above `***`), which renders as `<hr class="page-break">`.
 Inline content can represent text, common decoration, super/subscript, critic
 markup, inline footnotes, code, math, and links.
 Optional provenance records associate a block with a page, bounding box,

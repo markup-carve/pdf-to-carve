@@ -78,10 +78,11 @@ def _inline(
             url = _escape_url(node.url) if node.url else ""
             value = f"[{_inline(node.children, table=table, active_marks=active_marks)}]({url})"
         elif node.type == "substitute":
-            value = (
-                f"{{~{_inline(node.children, table=table, active_marks=active_marks)}"
-                f"~>{_inline(node.replacement, table=table, active_marks=active_marks)}~}}"
-            )
+            # Carve 0.2 has no substitution arrow: a deletion followed by an
+            # insertion is the spelling (U-069).
+            old = _inline(node.children, table=table, active_marks=active_marks | {"delete"})
+            new = _inline(node.replacement, table=table, active_marks=active_marks | {"insert"})
+            value = f"{{-{old}-}}{{+{new}+}}"
         elif node.type == "footnote":
             value = f"^[{_inline(node.children, table=table, active_marks=active_marks)}]"
         else:
@@ -118,9 +119,11 @@ def _inline(
                     )
                 )
             )
+            # Only strong and emphasis keep a bare form in Carve 0.2; bare
+            # underline, strike and highlight are text (U-065, U-066, U-067).
             if (
                 safe_boundaries
-                and node.type in {"strong", "emphasis", "underline", "strike", "highlight"}
+                and node.type in {"strong", "emphasis"}
                 and children
                 and not children[0].isspace()
                 and not children[-1].isspace()
@@ -185,7 +188,8 @@ def _frontmatter(doc: Document) -> str:
     present = [(key, value) for key, value in values if value is not None]
     if not present:
         return ""
-    lines = ["---yaml"]
+    # C2-W-052: YAML frontmatter takes the bare `---` opener.
+    lines = ["---"]
     for key, value in present:
         assert value is not None
         escaped = value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
@@ -197,7 +201,8 @@ def _frontmatter(doc: Document) -> str:
 def _block(block: Block) -> str:
     d = block.data
     if block.type == "heading":
-        heading = f"{'#' * d['level']} {_inline(d['content'])}"
+        # C2-W-035: the canonical heading marker is `=`, one per level.
+        heading = f"{'=' * d['level']} {_inline(d['content'])}"
         return f"{{#{d['id']}}}\n{heading}" if "id" in d else heading
     if block.type == "paragraph":
         paragraph = _escape_block_start(_inline(d["content"]))
@@ -259,7 +264,7 @@ def _block(block: Block) -> str:
     if block.type == "thematic_break":
         return "***"
     if block.type == "page_break":
-        return "::: page-break\n\n:::"
+        return "{.page-break}\n***"
     raise AssertionError(f"unhandled block type: {block.type}")
 
 

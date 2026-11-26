@@ -1,13 +1,11 @@
 Page-specific paragraph 1.
 
-::: page-break
-
-:::
+{.page-break}
+***
 
 Page-specific paragraph 2.
 
-::: page-break
-
-:::
+{.page-break}
+***
 
 Page-specific paragraph 3.

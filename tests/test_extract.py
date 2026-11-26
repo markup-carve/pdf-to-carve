@@ -33,7 +33,8 @@ def test_extracts_searchable_pdf(text_pdf: Path) -> None:
 def test_pipeline_auto_selects_text_without_api(text_pdf: Path) -> None:
     result = convert(text_pdf, ConversionOptions(text_threshold=20))
     assert result.mode == "text"
-    assert "# A Large Heading" in result.source
+    # C2-W-035: headings are written with `=`.
+    assert "= A Large Heading" in result.source
     assert "searchable body text" in result.source
 
 

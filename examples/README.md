@@ -32,7 +32,7 @@ python examples/render_markdown.py examples/*/result.crv
 
 The Markdown step uses `carve-lang`, the PyO3 binding over carve-rs, pinned in
 `pyproject.toml` and resolved in `uv.lock`. `uv sync --extra dev` installs it.
-On the Carve 0.2 line the pin is a carve-py `next2` commit built from source, and
+On the Carve 0.2 line the pin is a carve-py `main` commit built from source, and
 that engine has not ported its Markdown writer yet (markup-carve/carve-rs#4327):
 `render_markdown.py` stops with `markdown writer not available yet`, and the
 snapshot test skips each case with that reason. The committed `.md` files are the

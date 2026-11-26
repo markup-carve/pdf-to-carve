@@ -33,7 +33,7 @@ canonical spelling `carve fmt` writes for the constructs the converter
 produces: `=` headings, a bare `---` frontmatter opener, braced underline,
 strike and highlight, and a substitution written as a deletion followed by an
 insertion (`{-old-}{+new+}`). The semantic round-trip tests use the unreleased
-Python binding of the 0.2 engine, carve-py `next2`, pinned by commit in the
+Python binding of the 0.2 engine, carve-py `main`, pinned by commit in the
 `dev` extra and built from source, so `uv sync --extra dev` needs Rust 1.88
 or newer until a 0.2 binding is published.
 

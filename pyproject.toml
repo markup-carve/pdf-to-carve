@@ -40,7 +40,7 @@ Documentation = "https://github.com/markup-carve/pdf-to-carve#readme"
 Changelog = "https://github.com/markup-carve/pdf-to-carve/blob/main/CHANGELOG.md"
 Issues = "https://github.com/markup-carve/pdf-to-carve/issues"
 
-# The dev extra pins the unreleased Carve 0.2 Python binding (carve-py next2)
+# The dev extra pins the unreleased Carve 0.2 Python binding (carve-py main)
 # by commit; it is built from source, which needs a Rust toolchain.
 [tool.hatch.metadata]
 allow-direct-references = true

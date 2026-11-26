@@ -51,9 +51,8 @@ The next lines are literal text, not Markdown constructs:
 
 \# not a heading
 
-::: page-break
-
-:::
+{.page-break}
+***
 
 \- not a list item
 

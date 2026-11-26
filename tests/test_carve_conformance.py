@@ -118,7 +118,7 @@ BLOCK_CASES: dict[str, tuple[dict[str, object], tuple[str, ...]]] = {
         ('class="admonition note"', "<strong>Heads up</strong>"),
     ),
     "thematic_break": ({"type": "thematic_break"}, ("<hr>",)),
-    "page_break": ({"type": "page_break"}, ('<div class="page-break">',)),
+    "page_break": ({"type": "page_break"}, ('<hr class="page-break">',)),
 }
 
 INLINE_CASES: dict[str, tuple[dict[str, object], tuple[str, ...]]] = {

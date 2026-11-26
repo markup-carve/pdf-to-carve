@@ -158,7 +158,7 @@
         "insertions": 0,
         "substitutions": 0
       },
-      "characters": 125,
+      "characters": 121,
       "class": "repeated-furniture",
       "exact": true,
       "features": [
@@ -173,7 +173,7 @@
         "insertions": 0,
         "substitutions": 0
       },
-      "words": 15
+      "words": 13
     },
     {
       "character_errors": {
@@ -182,7 +182,7 @@
         "insertions": 0,
         "substitutions": 0
       },
-      "characters": 167,
+      "characters": 165,
       "class": "references",
       "exact": true,
       "features": [
@@ -196,7 +196,7 @@
         "insertions": 0,
         "substitutions": 0
       },
-      "words": 23
+      "words": 22
     },
     {
       "character_errors": {

@@ -4,9 +4,8 @@
 
 A supported claim ^[First footnote line continues on the next line.]
 
-::: page-break
-
-:::
+{.page-break}
+***
 
 {#page-2}
 = Details

@@ -176,6 +176,8 @@ Complex born-digital tables can still benefit from explicitly selecting
 
 The version-1 model accepts headings, paragraphs, flat lists, code blocks,
 quotes, admonitions, spanning tables, figures, thematic breaks, and page breaks.
+A page break is written as a thematic break with the class `page-break`
+(`{.page-break}` on the line above `***`), which renders as `<hr class="page-break">`.
 Inline content can represent text, common decoration, super/subscript, critic
 markup, inline footnotes, code, math, and links.
 Optional provenance records associate a block with a page, bounding box,

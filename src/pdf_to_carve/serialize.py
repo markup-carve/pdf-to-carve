@@ -264,7 +264,7 @@ def _block(block: Block) -> str:
     if block.type == "thematic_break":
         return "***"
     if block.type == "page_break":
-        return "::: page-break\n\n:::"
+        return "{.page-break}\n***"
     raise AssertionError(f"unhandled block type: {block.type}")
 
 

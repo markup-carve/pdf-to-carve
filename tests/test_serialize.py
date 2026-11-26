@@ -112,9 +112,9 @@ def test_escapes_comment_marker_split_across_text_nodes() -> None:
     assert to_carve(document) == "Shown: %\\% hidden\n"
 
 
-def test_page_break_uses_canonical_nonempty_container_layout() -> None:
+def test_page_break_is_a_thematic_break_with_the_page_break_class() -> None:
     source = to_carve(Document.from_json({"version": 1, "blocks": [{"type": "page_break"}]}))
-    assert source == "::: page-break\n\n:::\n"
+    assert source == "{.page-break}\n***\n"
 
 
 def test_math_and_thematic_break_use_native_carve_syntax() -> None:

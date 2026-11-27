@@ -2,9 +2,15 @@
 
 ## Unreleased
 
+## 0.2.0 - 2026-11-27
+
 ### Breaking
 
 - Converted documents are Carve 0.2 source: headings are written with `=`, YAML frontmatter opens with a bare `---`, underline, strike and highlight always keep their braces, and a substitution is written as a deletion followed by an insertion (`{-old-}{+new+}`).
+
+### Fixes
+
+- A page boundary is written as a `***` break with the `{.page-break}` attribute instead of an empty `::: page-break` div, so it survives conversion to other formats (#61).
 
 ## 0.1.10 - 2026-11-12
 
